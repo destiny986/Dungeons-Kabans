@@ -7,7 +7,7 @@
 <nav aria-label="Навигация">{% block nav %}<a href="{% url 'game:index' %}">В начало</a>{% endblock %}
 </nav>
 </header>
-<main id="main" class="{% block main_class %}page{% endblock %}">{% if messages and not character and not events %}{% endif %}{% block content %}{% endblock %}
+<main id="main" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}
 </main>
 <footer class="app-footer">Броски решают многое. Историю создаёте вы. <span>✦</span>
 </footer>
