@@ -31,6 +31,9 @@ def has_master_access(request):
 
 
 def _valid_grants(request):
+    # Session keys arrive from cookies before Django lazily checks DB existence/expiry.
+    # Load data first, without rejecting valid player sessions whose data is empty.
+    request.session.items()
     if not request.session.session_key:
         return CharacterGrant.objects.none()
     return CharacterGrant.objects.select_related('character', 'invitation').filter(

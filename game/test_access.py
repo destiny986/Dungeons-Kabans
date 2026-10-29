@@ -274,3 +274,48 @@ def test_media_rejects_missing_and_outside_symlink(client, master, settings, tmp
     except OSError:
         pytest.skip('Windows symlink privilege unavailable; missing/path traversal tests still run')
     assert client.get(reverse('game:media', args=[media.digest])).status_code == 404
+
+
+@pytest.mark.parametrize('invalidated', ['expired', 'deleted'])
+@pytest.mark.parametrize('htmx', [False, True])
+def test_direct_player_rejects_replayed_invalid_session_cookie(client, settings, invalidated, htmx):
+    from datetime import timedelta
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+
+    a = hero()
+    join(client, a)
+    cookie = client.cookies[settings.SESSION_COOKIE_NAME].value
+    sessions = Session.objects.filter(session_key=cookie)
+    assert sessions.exists()
+    if invalidated == 'expired':
+        sessions.update(expire_date=timezone.now() - timedelta(seconds=1))
+    else:
+        sessions.delete()
+    assert CharacterGrant.objects.filter(session_key=cookie, character=a, revoked=False).exists()
+
+    replay = Client()
+    replay.cookies[settings.SESSION_COOKIE_NAME] = cookie
+    headers = {'HTTP_HX_REQUEST': 'true'} if htmx else {}
+    response = replay.get(reverse('game:player', args=[a.pk]), **headers)
+    if htmx:
+        assert response.status_code == 200
+        assert response['HX-Redirect'] == reverse('game:index')
+        assert response.content == b''
+    else:
+        assert response.status_code == 302
+        assert response.url == reverse('game:index')
+
+
+def test_direct_player_accepts_unexpired_empty_session(client, settings):
+    from django.contrib.sessions.models import Session
+
+    a = hero()
+    join(client, a)
+    cookie = client.cookies[settings.SESSION_COOKIE_NAME].value
+    assert Session.objects.get(session_key=cookie).get_decoded() == {}
+    replay = Client()
+    replay.cookies[settings.SESSION_COOKIE_NAME] = cookie
+    response = replay.get(reverse('game:player', args=[a.pk]))
+    assert response.status_code == 200
+    assert response.content == b'player'
