@@ -163,3 +163,7 @@ main.dist/
 *.ruff_cache
 .superpowers
 task/
+data/
+media/
+imports/
+*.credential.xml
