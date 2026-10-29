@@ -269,5 +269,3 @@ def chat_read(request,pk):
     if result.get('status') in ('error','stale'):
         return render(request,'game/operation_result.html',context(result=result),status=422)
     return success(request,'game:player',pk=pk)
-
-

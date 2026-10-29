@@ -124,4 +124,3 @@ def wipe(request):
         for category in set(categories):
             MODELS[category].objects.all().delete()
     return navigate(request,'game:data')
-
