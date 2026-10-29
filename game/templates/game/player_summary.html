@@ -19,7 +19,7 @@
 </div>
 <div class="resource-strip">{% for resource in resources %}{% if resource.maximum %}
 <div class="resource-group"><span class="resource-title">{% if resource.kind == 'spell_slot' %}{{ resource.label }}{% elif resource.kind == 'rage' %}Ярость{% else %}Дикий облик{% endif %}</span>
-<div class="resource-pips" aria-label="{{ resource.current }} из {{ resource.maximum }}"><span class="sr-only">{{ resource.current }} / {{ resource.maximum }}</span>{% for filled in resource.pips %}<i class="pip {% if filled %}filled{% endif %} {% if resource.kind != 'spell_slot' %}pip-{{ resource.kind }}{% endif %}" aria-hidden="true"></i>{% endfor %}
+<div class="resource-pips" aria-label="{{ resource.current }} из {{ resource.maximum }}"><span class="resource-count">{{ resource.current }} / {{ resource.maximum }}</span>{% for filled in resource.pips %}<i class="pip {% if filled %}filled{% endif %} {% if resource.kind != 'spell_slot' %}pip-{{ resource.kind }}{% endif %}" aria-hidden="true"></i>{% endfor %}
 </div>
 </div>{% endif %}{% endfor %}
 </div>

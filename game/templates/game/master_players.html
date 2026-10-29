@@ -1,7 +1,7 @@
 {% for character in characters %}
-<article class="player-mini"><a href="{% url 'game:player' character.pk %}" class="portrait-link" title="Открыть лист персонажа">{% include 'game/portrait.html' %}</a>
+<article class="player-mini"><a href="{% url 'game:card' 'character' character.pk %}" hx-target="#dialog-content" data-dialog hx-get="{% url 'game:card' 'character' character.pk %}" class="portrait-link" title="Открыть лист персонажа">{% include 'game/portrait.html' %}</a>
 <div>
-<h3><a href="{% url 'game:player' character.pk %}">{{ character.name }}</a>
+<h3><a href="{% url 'game:card' 'character' character.pk %}" hx-get="{% url 'game:card' 'character' character.pk %}" hx-target="#dialog-content" data-dialog>{{ character.name }}</a>
 </h3>
 <p>{{ character.character_class }}
 </p><span class="health-text">♥ {{ character.health_current }} <span>/ {{ character.health_max }}</span></span>

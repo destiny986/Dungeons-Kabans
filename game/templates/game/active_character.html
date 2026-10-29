@@ -1,0 +1,6 @@
+<section class="active-character">
+{% include 'game/portrait.html' %}<h2>{{ character.name }}</h2><p>{{ character.character_class }}</p>
+<p>Здоровье: {{ character.health_current }} / {{ character.health_max }}</p>
+<a class="button secondary" href="{% url 'game:character_edit' character.pk %}">Редактировать</a>
+<form method="post" action="{% url 'game:revoke' character.pk %}" hx-post="{% url 'game:revoke' character.pk %}" hx-target="#dialog-content" data-confirm="Отозвать приглашение персонажа?">{% csrf_token %}<button class="button danger">Отозвать доступ</button></form>
+</section>

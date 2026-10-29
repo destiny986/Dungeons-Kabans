@@ -13,4 +13,5 @@ class GameConfig(AppConfig):
     name = "game"
 
     def ready(self):
+        from . import signals  # Register shared lifecycle cleanup.
         connection_created.connect(configure_sqlite, dispatch_uid="game.sqlite.wal")
