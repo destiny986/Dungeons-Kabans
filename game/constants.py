@@ -1,0 +1,10 @@
+ABILITY_CHOICES = (("str", "Сила"), ("dex", "Ловкость"), ("con", "Телосложение"), ("int", "Интеллект"), ("wis", "Мудрость"), ("cha", "Харизма"))
+ABILITY_KEYS = tuple(key for key, _ in ABILITY_CHOICES)
+SKILL_CHOICES = (("acrobatics", "Акробатика"), ("animal_handling", "Уход за животными"), ("arcana", "Магия"), ("athletics", "Атлетика"), ("deception", "Обман"), ("history", "История"), ("insight", "Проницательность"), ("intimidation", "Запугивание"), ("investigation", "Расследование"), ("medicine", "Медицина"), ("nature", "Природа"), ("perception", "Внимательность"), ("performance", "Выступление"), ("persuasion", "Убеждение"), ("religion", "Религия"), ("sleight_of_hand", "Ловкость рук"), ("stealth", "Скрытность"), ("survival", "Выживание"))
+SKILL_KEYS = tuple(key for key, _ in SKILL_CHOICES)
+COLOR_CHOICES = (("red", "Красный"), ("blue", "Синий"), ("green", "Зелёный"), ("orange", "Оранжевый"), ("yellow", "Жёлтый"), ("cyan", "Голубой"))
+ACTIVATION_CHOICES = (("action", "Действие"), ("bonus", "Бонусное действие"), ("reaction", "Реакция"))
+RESOURCE_CHOICES = (("spell_slot", "Ячейка заклинания"), ("rage", "Ярость"), ("wildshape", "Дикий облик"))
+ACTION_RESOURCE_CHOICES = (("none", "Нет"),) + RESOURCE_CHOICES
+MESSAGE_KINDS = tuple((key, key) for key in ("text", "event", "item_grant", "action_grant", "action_use", "item_remove", "health", "rest"))
+IMPORT_STATUSES = tuple((key, key) for key in ("staged", "review", "committing", "complete", "cancelled", "failed"))
