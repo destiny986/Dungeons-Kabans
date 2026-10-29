@@ -36,7 +36,8 @@ def master_context(request):
 def player_context(request, character):
     from game.chat import messages_for, unread_count
     resources = []
-    for resource in character.resources.order_by('kind','level'):
+    resource_order = {'spell_slot': 0, 'rage': 1, 'wildshape': 2}
+    for resource in sorted(character.resources.all(), key=lambda row: (resource_order[row.kind], row.level)):
         enabled = {'spell_slot':character.can_cast,'rage':character.can_rage,'wildshape':character.can_wildshape}[resource.kind]
         if enabled and resource.maximum:
             resources.append({'kind':resource.kind,'level':resource.level,'label':f'Ячейки {resource.level}', 'current':resource.current,'maximum':resource.maximum,'pips':[i < resource.current for i in range(min(resource.maximum,128))]})
@@ -46,10 +47,9 @@ def player_context(request, character):
         group = [a for a in actions if a.resource == 'none' and a.activation == activation]
         if group:
             sections.append({'label':label,'actions':group})
-    for level in range(1,8):
-        group = [a for a in actions if a.resource == 'spell_slot' and a.slot_level == level]
-        if group:
-            sections.append({'label':f'Заклинания {level} уровня','actions':group})
+    spells = [action for action in actions if action.resource == 'spell_slot']
+    if spells:
+        sections.append({'label':'Заклинания','actions':spells})
     for kind,label in [('rage','Ярость'),('wildshape','Дикий облик')]:
         group = [a for a in actions if a.resource == kind]
         if group:

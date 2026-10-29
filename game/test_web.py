@@ -186,3 +186,39 @@ def test_large_resources_are_bounded_and_inventory_cards_are_private(master):
     response=player.get(reverse('game:player',args=[hero.pk]))
     resource=response.context['resources'][0]
     assert len(resource['pips'])==128 and resource['maximum']==1000000
+
+def test_player_groups_all_spell_levels_in_one_section():
+    from game.models import Action, CharacterAction, CharacterResource, MediaAsset
+    hero = Character.objects.create(name='Grouped spells', character_class='Mage',
+                                    can_cast=True, can_rage=True, can_wildshape=True)
+    player = joined(hero)
+    icon = MediaAsset.objects.create(digest='0'*64, path='0'*64+'.png', width=256, height=256)
+    spell_ids = set()
+    for name, activation, resource, level in [
+        ('Free action', 'action', 'none', None),
+        ('Free bonus', 'bonus', 'none', None),
+        ('Free reaction', 'reaction', 'none', None),
+        ('First spell', 'action', 'spell_slot', 1),
+        ('Fifth spell', 'bonus', 'spell_slot', 5),
+        ('Rage action', 'action', 'rage', None),
+        ('Wildshape action', 'action', 'wildshape', None),
+    ]:
+        action = Action.objects.create(name=name, description='Details', icon=icon,
+                                       activation=activation, resource=resource, slot_level=level)
+        CharacterAction.objects.create(character=hero, action=action)
+        if resource == 'spell_slot':
+            spell_ids.add(action.pk)
+    for kind, level in [('wildshape', 0), ('spell_slot', 5), ('rage', 0), ('spell_slot', 1)]:
+        CharacterResource.objects.create(character=hero, kind=kind, level=level, current=1, maximum=1)
+    for route in ('player', 'player_poll'):
+        response = player.get(reverse('game:'+route, args=[hero.pk]))
+        assert response.status_code == 200
+        sections = response.context['action_sections']
+        spell_sections = [section for section in sections if any(action.resource == 'spell_slot' for action in section['actions'])]
+        assert len(spell_sections) == 1
+        assert {action.pk for action in spell_sections[0]['actions']} == spell_ids
+        assert sections[3] == spell_sections[0]
+        assert [section['label'] for section in sections] == [
+            'Действие', 'Бонусное действие', 'Реакция', 'Заклинания', 'Ярость', 'Дикий облик']
+        assert [(row['kind'], row['level']) for row in response.context['resources']] == [
+            ('spell_slot', 1), ('spell_slot', 5), ('rage', 0), ('wildshape', 0)]
