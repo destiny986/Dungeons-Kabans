@@ -1,0 +1,15 @@
+<section class="grid-stack-item" gs-id="{{ kind }}" gs-x="{{ x }}" gs-y="{{ y }}" gs-w="{{ w }}" gs-h="{{ h }}">
+<div class="grid-stack-item-content panel">
+<header class="panel-heading">
+<h2>{{ title }}
+</h2><a class="icon-button" href="{% url 'game:catalog_new' kind %}" aria-label="Создать: {{ title }}">+</a>
+</header>
+<div class="panel-filter">
+<label class="sr-only" for="filter-{{ kind }}">Поиск: {{ title }}
+</label>
+<input id="filter-{{ kind }}" type="search" name="{{ kind }}s_filter" placeholder="Найти по названию, тексту, тегам…" data-filter="master-{{ kind }}s" data-poll-include>
+</div>
+<div id="master-{{ kind }}s" class="panel-body {% if kind == 'event' %}event-list{% else %}icon-grid{% endif %}">{% include 'game/catalog_entries.html' %}
+</div>
+</div>
+</section>

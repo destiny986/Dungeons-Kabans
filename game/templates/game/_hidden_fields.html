@@ -1,0 +1,3 @@
+{% for hidden in form.hidden_fields %}{{ hidden }}{% for error in hidden.errors %}
+<p class="field-error" role="alert">{{ error }}
+</p>{% endfor %}{% endfor %}

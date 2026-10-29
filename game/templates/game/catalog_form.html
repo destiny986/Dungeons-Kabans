@@ -1,0 +1,51 @@
+{% extends 'game/base.html' %}{% block title %}{% if is_edit %}Редактирование{% else %}Новая запись{% endif %}{% endblock %}{% block nav %}<a href="{% url 'game:master' %}">← Стол мастера</a>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">Записи мастера
+</p>
+<h1>{% if is_edit %}Редактировать{% else %}Создать{% endif %} {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие или заклинание{% endif %}
+</h1>
+</div>
+</div>
+<div class="editor-layout">
+<form class="paper editor-form" method="post" enctype="multipart/form-data" data-preview-form>{% csrf_token %}{% include 'game/_request_id.html' %}{% include 'game/_errors.html' %}{% include 'game/_hidden_fields.html' %}{% if kind == 'event' %}{% include 'game/_field.html' with field=form.name label='Краткое описание' %}{% else %}{% include 'game/_field.html' with field=form.name label='Название' %}{% endif %}{% include 'game/_field.html' with field=form.description label='Полное описание' %}{% if kind == 'event' %}{% include 'game/_field.html' with field=form.color label='Цвет карточки' %}{% else %}{% include 'game/_field.html' with field=form.icon label='Иконка · PNG' %}{% if object.icon %}<img class="upload-current" src="{% url 'game:media' object.icon.digest %}" width="64" height="64" alt="Текущая иконка">{% endif %}{% endif %}{% if kind == 'action' %}
+<div class="form-grid">{% include 'game/_field.html' with field=form.activation label='Тип действия' %}{% include 'game/_field.html' with field=form.resource label='Требуемый ресурс' %}
+<div data-show-resource="spell_slot">{% include 'game/_field.html' with field=form.slot_level label='Уровень ячейки' %}
+</div>
+</div>{% endif %}{% include 'game/_field.html' with field=form.tags label='Теги через запятую' %}
+<div class="form-actions">
+<button class="button" type="submit">Сохранить {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие{% endif %}
+</button><a class="button secondary" href="{% url 'game:master' %}">Отмена</a>
+</div>
+</form>
+<aside class="preview-aside" aria-label="Предпросмотр">
+<p class="eyebrow">Так увидят игроки
+</p>
+<h2>Предпросмотр
+</h2>
+<p class="help">Изменяется по мере заполнения формы
+</p>
+<h3 class="preview-label">Свернутая карточка
+</h3>
+<div class="event-card preview-compact event-{{ object.color|default:'yellow' }}" data-preview-card>
+<div class="preview-icon" {% if kind == 'event' %}hidden{% endif %}><img data-preview-image alt="Выбранная иконка" {% if object.icon %}src="{% url 'game:media' object.icon.digest %}"{% else %}hidden{% endif %}>
+</div>
+<h3 data-preview="name">{{ object.name|default:'Название записи' }}
+</h3>
+<p data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
+</p>
+</div>
+<h3 class="preview-label">Полная карточка
+</h3>
+<article class="paper preview-full">
+<h2 data-preview="name">{{ object.name|default:'Название записи' }}
+</h2>{% if kind == 'action' %}
+<div class="action-meta"><span data-preview-select="activation">Тип действия</span><span data-preview-select="resource">Ресурс</span><span data-preview="slot_level"></span>
+</div>{% endif %}
+<p class="prose" data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
+</p>
+<div class="tags" data-preview-tags>{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
+</div>
+</article>
+</aside>
+</div>{% endblock %}

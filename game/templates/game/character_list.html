@@ -1,0 +1,37 @@
+{% extends 'game/base.html' %}{% block title %}Персонажи{% endblock %}{% block nav %}<a href="{% url 'game:master' %}">← Стол мастера</a>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">Герои вашей истории
+</p>
+<h1>Управление персонажами
+</h1>
+</div><a class="button" href="{% url 'game:character_new' %}">+ Создать персонажа</a>
+</div>
+<div class="character-grid">{% for character in characters %}
+<article class="paper character-card">
+<div class="character-card-top">{% include 'game/portrait.html' %}<span class="status-chip {% if character.is_active %}active{% endif %}">{% if character.is_active %}В игре{% else %}Вне игры{% endif %}</span>
+</div>
+<h2>{{ character.name }}
+</h2>
+<p>{{ character.character_class }}
+</p>
+<p class="health-text">♥ {{ character.health_current }} / {{ character.health_max }}
+</p>
+<div class="card-tools"><a class="button secondary small" href="{% url 'game:character_edit' character.pk %}" aria-label="Редактировать {{ character.name }}">✎ Изменить</a>
+<form method="post" action="{% url 'game:character_delete' character.pk %}" data-confirm="Удалить персонажа {{ character.name }}, его историю и доступы?">{% csrf_token %}{% include 'game/_request_id.html' %}
+<button class="icon-button danger" aria-label="Удалить {{ character.name }}">⌫
+</button>
+</form>
+</div>
+<form method="post" action="{% url 'game:invite' character.pk %}" hx-post="{% url 'game:invite' character.pk %}" hx-target="#dialog-content" data-dialog>{% csrf_token %}{% include 'game/_request_id.html' %}
+<button class="button wide">Пригласить игрока ↗
+</button>
+</form>
+</article>{% empty %}
+<section class="paper empty-state"><span aria-hidden="true">♙</span>
+<h2>Кто отправится в приключение?
+</h2>
+<p>Создайте первого героя и пригласите игрока по ссылке или QR-коду.
+</p><a class="button" href="{% url 'game:character_new' %}">Создать персонажа</a>
+</section>{% endfor %}
+</div>{% endblock %}

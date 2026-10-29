@@ -1,0 +1,9 @@
+{% extends 'game/base.html' %}{% block title %}{{ title|default:'Не удалось открыть страницу' }}{% endblock %}{% block content %}
+<section class="paper narrow error-page"><span class="section-glyph" aria-hidden="true">✧</span>
+<p class="eyebrow">На пути возникла преграда
+</p>
+<h1>{{ title|default:'Не удалось открыть страницу' }}
+</h1>
+<p>{{ message|default:'Попробуйте вернуться в начало и продолжить игру. Если приглашение отозвано, попросите мастера прислать новое.' }}
+</p><a class="button" href="{% url 'game:index' %}">В начало →</a>
+</section>{% endblock %}

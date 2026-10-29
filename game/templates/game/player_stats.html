@@ -1,0 +1,22 @@
+<div class="section-heading">
+<h2>Характеристики и спасброски
+</h2><span class="panel-caption">Значение · характеристика · спасбросок</span>
+</div>
+<div class="ability-grid">{% for row in ability_rows %}
+<div class="ability-tile"><strong>{{ row.value|stringformat:'+d' }}</strong><span>{{ row.label }}</span><b>{{ row.save|stringformat:'+d' }}</b>
+</div>{% endfor %}
+</div>
+<h2>Черты и свойства
+</h2>
+<div class="prose trait-note">{{ character.traits|default:'Особые черты ещё не записаны.'|linebreaksbr }}
+</div>
+<h2>Навыки
+</h2>
+<dl class="skills-grid">{% for row in skill_rows %}
+<div>
+<dt>{{ row.label }}
+</dt>
+<dd>{{ row.value|stringformat:'+d' }}
+</dd>
+</div>{% endfor %}
+</dl>

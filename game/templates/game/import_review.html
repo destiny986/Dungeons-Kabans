@@ -1,0 +1,42 @@
+{% extends 'game/base.html' %}{% block title %}Проверка архива{% endblock %}{% block nav %}<a href="{% url 'game:data' %}">← Управление данными</a>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">До сохранения в игру
+</p>
+<h1>Проверка загруженных данных
+</h1>
+</div>
+</div>{% include 'game/_errors.html' %}
+<div class="paper import-summary">
+<h2>Архив проверен
+</h2>
+<p>{{ summary|default:'Проверьте записи и выберите, какую версию сохранить для каждого совпадения.' }}
+</p>
+<p class="help">Полностью одинаковые записи сохраняются в текущей версии. Изменения появятся в игре после подтверждения всех решений.
+</p>
+</div>
+<form method="post" action="{% url 'game:import_commit' job.pk %}">{% csrf_token %}{% include 'game/_request_id.html' %}{% for conflict in conflicts %}
+<fieldset class="paper conflict"><legend>{{ conflict.label }}</legend>
+<p class="help">Выберите одну версию для сохранения.
+</p>
+<div class="conflict-grid">{% for candidate in conflict.candidates %}
+<label class="conflict-option"><span class="conflict-heading">
+<input type="radio" name="choice_{{ conflict.key }}" value="{{ candidate.value }}" required {% if candidate.selected %}checked{% endif %}>{{ candidate.label }}</span>{% if conflict.kind == 'character' %}<pre>{{ candidate.json }}</pre>{% else %}{% include 'game/import_card.html' with object=candidate.object kind=conflict.kind %}{% endif %}
+</label>{% endfor %}
+</div>
+</fieldset>{% empty %}
+<div class="paper empty-state"><span aria-hidden="true">✓</span>
+<h2>Конфликтов нет
+</h2>
+<p>Все новые записи готовы к добавлению.
+</p>
+</div>{% endfor %}
+<div class="sticky-save"><span>Изменения сохраняются вместе</span>
+<button class="button">Подтвердить загрузку
+</button>
+</div>
+</form>
+<form method="post" action="{% url 'game:import_cancel' job.pk %}" class="cancel-import">{% csrf_token %}{% include 'game/_request_id.html' %}
+<button class="button secondary">Полностью отменить загрузку
+</button>
+</form>{% endblock %}

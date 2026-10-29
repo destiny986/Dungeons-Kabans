@@ -1,0 +1,24 @@
+<section class="confirmation" data-result="{{ result.status }}">
+<p class="eyebrow">{% if result.offered_level %}Выбор ячейки{% elif result.status == 'error' or result.status == 'unavailable' %}Не удалось выполнить{% else %}Ход приключения{% endif %}
+</p>
+<h2>{% if result.offered_level %}Использовать ячейку выше?{% elif result.status == 'error' or result.status == 'unavailable' %}Действие не выполнено{% else %}{{ result.title|default:'Результат действия' }}{% endif %}
+</h2>
+<p>{{ result.message }}
+</p>{% if result.offered_level %}
+<p>Требуется ячейка <strong>{{ result.required_level }}</strong> уровня. Доступна ячейка <strong>{{ result.offered_level }}</strong> уровня.
+</p>
+<p class="help">Она будет потрачена только после подтверждения.
+</p>
+<form method="post" action="{% url 'game:apply_action' character.pk action.pk %}" hx-post="{% url 'game:apply_action' character.pk action.pk %}" hx-target="#dialog-content">{% csrf_token %}{% include 'game/_request_id.html' %}
+<input type="hidden" name="confirmed_level" value="{{ result.offered_level }}">
+<input type="hidden" name="proposal" value="{{ result.proposal }}">
+<div class="button-row">
+<button class="button">Использовать {{ result.offered_level }} уровень
+</button>
+<button class="button secondary" type="button" data-close>Отмена
+</button>
+</div>
+</form>{% else %}
+<button class="button" type="button" data-close>Понятно
+</button>{% endif %}
+</section>

@@ -1,0 +1,45 @@
+<div class="character-identity">{% include 'game/portrait.html' %}
+<div>
+<p class="eyebrow">Лист приключенца
+</p>
+<h1>{{ character.name }}
+</h1>
+<p class="character-class">{{ character.character_class }}
+</p>
+</div>
+</div>
+<div class="health-block">
+<label for="health-current">Здоровье
+</label>
+<form action="{% url 'game:health' character.pk %}" method="post" hx-post="{% url 'game:health' character.pk %}" hx-trigger="change" hx-target="#dialog-content" data-health-form>{% csrf_token %}{% include 'game/_request_id.html' %}<span aria-hidden="true">♥</span>
+<input type="number" min="0" step="1" required id="health-current" name="health_current" value="{{ character.health_current }}" aria-label="Текущее здоровье"><span class="health-max">/ {{ character.health_max }}</span><noscript>
+<button type="submit">Сохранить
+</button></noscript>
+</form>
+</div>
+<div class="resource-strip">{% for resource in resources %}{% if resource.maximum %}
+<div class="resource-group"><span class="resource-title">{% if resource.kind == 'spell_slot' %}{{ resource.label }}{% elif resource.kind == 'rage' %}Ярость{% else %}Дикий облик{% endif %}</span>
+<div class="resource-pips" aria-label="{{ resource.current }} из {{ resource.maximum }}"><span class="sr-only">{{ resource.current }} / {{ resource.maximum }}</span>{% for filled in resource.pips %}<i class="pip {% if filled %}filled{% endif %} {% if resource.kind != 'spell_slot' %}pip-{{ resource.kind }}{% endif %}" aria-hidden="true"></i>{% endfor %}
+</div>
+</div>{% endif %}{% endfor %}
+</div>
+<dl class="quick-stats">
+<div>
+<dt>Скорость
+</dt>
+<dd>{{ character.speed }}
+</dd>
+</div>
+<div>
+<dt>Класс доспеха
+</dt>
+<dd>{{ character.armor_class }}
+</dd>
+</div>
+<div>
+<dt>Бонус мастерства
+</dt>
+<dd>+{{ character.proficiency_bonus }}
+</dd>
+</div>
+</dl>

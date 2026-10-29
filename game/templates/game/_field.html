@@ -1,0 +1,7 @@
+{% if field %}
+<div class="field{% if field.errors %} invalid{% endif %}">
+<label for="{{ field.id_for_label }}">{% if label %}{{ label }}{% else %}{{ field.label }}{% endif %}{% if field.field.required %}<span class="required" aria-label="обязательно"> *</span>{% endif %}
+</label>{{ field }}{% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}
+<p class="field-error" role="alert">{{ error }}
+</p>{% endfor %}
+</div>{% endif %}

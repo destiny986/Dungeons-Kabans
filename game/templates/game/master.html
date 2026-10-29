@@ -1,0 +1,51 @@
+{% extends 'game/base.html' %}{% block title %}Стол мастера{% endblock %}{% block main_class %}page worktable{% endblock %}{% block nav %}<span class="role-label">Мастер</span>
+<button type="button" class="button secondary small" data-open="settings-dialog">⚙ <span>Настройки</span>
+</button>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">За ширмой
+</p>
+<h1>Стол мастера
+</h1>
+</div><span class="connection"><i></i> Живая игра <span id="connection-status" class="sr-only">Обновление каждые 5 секунд</span></span>
+</div>
+<div id="poller" hx-get="{% url 'game:master_poll' %}" hx-trigger="every 5s [document.visibilityState === 'visible'], refresh" hx-swap="none" hx-include="[data-poll-include]" aria-hidden="true">
+</div>
+<div class="grid-stack" id="master-grid">
+<section class="grid-stack-item" gs-id="players" gs-x="0" gs-y="0" gs-w="3" gs-h="5">
+<div class="grid-stack-item-content panel">
+<header class="panel-heading">
+<h2>Игроки
+</h2>
+<form method="post" action="{% url 'game:rest' %}" hx-post="{% url 'game:rest' %}" hx-target="#dialog-content" data-dialog data-confirm="Восстановить здоровье и все ресурсы активных персонажей?">{% csrf_token %}{% include 'game/_request_id.html' %}
+<button class="button secondary small" type="submit">☾ Отдых
+</button>
+</form>
+</header>
+<div id="master-players" class="panel-body">{% include 'game/master_players.html' %}
+</div>
+</div>
+</section>
+<section class="grid-stack-item" gs-id="chat" gs-x="3" gs-y="0" gs-w="5" gs-h="10">
+<div class="grid-stack-item-content panel chat-panel">
+<header class="panel-heading">
+<h2>Переписка
+</h2><span class="panel-caption">Мастер ↔ игроки</span>
+</header>
+<div id="master-messages" class="chat-messages" data-chat-scroll>{% include 'game/chat_messages.html' %}
+</div>{% include 'game/chat_form.html' with is_master=True %}
+</div>
+</section>{% include 'game/catalog_panel.html' with kind='event' title='События' objects=events x=8 y=0 w=4 h=5 %}{% include 'game/catalog_panel.html' with kind='item' title='Предметы' objects=items x=0 y=5 w=3 h=5 %}{% include 'game/catalog_panel.html' with kind='action' title='Действия и заклинания' objects=actions x=8 y=5 w=4 h=5 %}
+</div>{% endblock %}{% block extra %}
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+<button type="button" class="dialog-close" data-close aria-label="Закрыть">×
+</button>
+<p class="eyebrow">Инструменты мастера
+</p>
+<h2 id="settings-title">Настройки игры
+</h2>
+<nav class="menu-list"><a href="{% url 'game:catalog_new' 'event' %}">✧ Создать событие <span>→</span></a><a href="{% url 'game:catalog_new' 'item' %}">◇ Создать предмет <span>→</span></a><a href="{% url 'game:catalog_new' 'action' %}">ϟ Создать действие или заклинание <span>→</span></a><a href="{% url 'game:characters' %}">♙ Управление персонажами <span>→</span></a><a href="{% url 'game:data' %}">▤ Управление базой данных <span>→</span></a>
+</nav>
+<button type="button" class="text-button" data-reset-layout>Сбросить расположение секций
+</button>
+</dialog>{% endblock %}

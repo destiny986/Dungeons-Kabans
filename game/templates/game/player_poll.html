@@ -1,0 +1,12 @@
+<div id="player-summary" hx-swap-oob="innerHTML">{% include 'game/player_summary.html' %}
+</div>
+<div id="player-stats" hx-swap-oob="innerHTML">{% include 'game/player_stats.html' %}
+</div>
+<div id="player-actions" hx-swap-oob="innerHTML">{% include 'game/player_actions.html' %}
+</div>
+<div id="player-inventory" hx-swap-oob="innerHTML">{% include 'game/player_inventory.html' %}
+</div>
+<div id="player-backstory" hx-swap-oob="innerHTML">{% include 'game/player_backstory.html' %}
+</div>
+<div id="player-messages" hx-swap-oob="innerHTML">{% include 'game/chat_messages.html' %}
+</div><span id="chat-unread" hx-swap-oob="outerHTML" class="unread" {% if not unread %}hidden{% endif %}>{{ unread }}</span>

@@ -1,0 +1,11 @@
+{% for object in objects %}{% if kind == 'event' %}<a class="event-card event-{{ object.color }}" data-search="{{ object.search_text }} {{ object.name }} {{ object.description }} {{ object.tags|join:' ' }}" href="{% url 'game:card' kind object.pk %}" hx-get="{% url 'game:card' kind object.pk %}" hx-target="#dialog-content" data-dialog>
+<h3>{{ object.name }}
+</h3>
+<p>{{ object.description }}
+</p>
+<div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
+</div></a>{% else %}{% include 'game/icon.html' %}{% endif %}{% empty %}
+<div class="empty-state"><span aria-hidden="true">✧</span>
+<p>{% if kind == 'event' %}История ждёт первого события{% elif kind == 'item' %}Здесь будут находки и сокровища{% else %}Здесь начнётся книга действий{% endif %}
+</p><a href="{% url 'game:catalog_new' kind %}">Создать первую запись →</a>
+</div>{% endfor %}

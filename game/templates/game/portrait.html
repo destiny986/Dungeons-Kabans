@@ -1,0 +1,1 @@
+{% if character.portrait %}<img class="portrait" src="{% url 'game:media' character.portrait.digest %}" alt="Портрет: {{ character.name }}" width="96" height="96">{% else %}<span class="portrait portrait-empty" aria-label="Без портрета">{{ character.name|first|default:'♙' }}</span>{% endif %}

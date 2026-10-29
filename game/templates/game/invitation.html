@@ -1,0 +1,17 @@
+<section class="invitation">
+<p class="eyebrow">Место за игровым столом
+</p>
+<h2>Приглашение для {{ character.name }}
+</h2>
+<p>Откройте ссылку на устройстве игрока или отсканируйте QR-код камерой.
+</p>{% if qr_data_uri %}<img class="qr-code" src="{{ qr_data_uri }}" width="240" height="240" alt="QR-код приглашения персонажа {{ character.name }}">{% endif %}
+<label class="field" for="invitation-link">Ссылка приглашения
+<input id="invitation-link" value="{{ link }}" readonly>
+</label>
+<div class="button-row">
+<button class="button" type="button" data-copy="invitation-link">Копировать ссылку
+</button><a class="button secondary" href="{{ link }}">Перейти</a>
+</div>
+<p class="help">Ссылка даёт доступ к этому персонажу. Делитесь ею только с его игроком.
+</p>
+</section>

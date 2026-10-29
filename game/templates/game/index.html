@@ -1,0 +1,44 @@
+{% extends 'game/base.html' %}{% block title %}Вход в игру{% endblock %}{% block content %}
+<div class="entry-layout">
+<section class="entry-note">
+<p class="eyebrow">Ваше приключение продолжается
+</p>
+<h1>За одним столом.<br>В одном мире.
+</h1>
+<p>Лист персонажа, заклинания, находки и разговоры с мастером — всё на страницах одного дневника.
+</p>
+<div class="journal-seal" aria-hidden="true">✧<span>СОБЕРИТЕ<br>СВОЮ ИСТОРИЮ</span>
+</div>
+</section>
+<section class="paper entry-form">
+<p class="eyebrow">Dungeons & Kabans
+</p>
+<h2>Открыть дневник
+</h2>{% if roles %}
+<button class="button wide" type="button" data-open="role-dialog">Вернуться в игру <span aria-hidden="true">→</span>
+</button>
+<div class="divider">или войти как мастер
+</div>{% endif %}
+<form method="post" action="{% url 'game:master_login' %}">{% csrf_token %}{% include 'game/_errors.html' %}{% if form %}{% include 'game/_field.html' with field=form.password label='Пароль мастера' %}{% else %}
+<div class="field">
+<label for="password">Пароль мастера
+</label>
+<input type="password" name="password" id="password" required autocomplete="current-password">
+</div>{% endif %}
+<button class="button wide" type="submit">Войти мастером <span aria-hidden="true">↗</span>
+</button>
+</form>
+<p class="help">Играете за персонажа? Откройте ссылку приглашения от мастера или отсканируйте QR-код.
+</p>
+</section>
+</div>{% endblock %}{% block extra %}
+<dialog id="role-dialog" aria-labelledby="roles-title">
+<button class="dialog-close" type="button" data-close aria-label="Закрыть">×
+</button>
+<p class="eyebrow">Сохранённые роли
+</p>
+<h2 id="roles-title">Кем продолжим?
+</h2>
+<div class="role-list">{% for role in roles %}<a class="role-card" href="{{ role.url }}">{{ role.label }}<span aria-hidden="true">→</span></a>{% endfor %}
+</div>
+</dialog>{% endblock %}

@@ -1,0 +1,12 @@
+<div id="master-players" hx-swap-oob="innerHTML">{% include 'game/master_players.html' %}
+</div>
+<div id="master-events" hx-swap-oob="innerHTML">{% include 'game/catalog_entries.html' with kind='event' objects=events %}
+</div>
+<div id="master-items" hx-swap-oob="innerHTML">{% include 'game/catalog_entries.html' with kind='item' objects=items %}
+</div>
+<div id="master-actions" hx-swap-oob="innerHTML">{% include 'game/catalog_entries.html' with kind='action' objects=actions %}
+</div>
+<div id="master-messages" hx-swap-oob="innerHTML">{% include 'game/chat_messages.html' %}
+</div>
+<select id="chat-recipient" hx-swap-oob="innerHTML"><option value="">Выберите получателя</option>{% for recipient in characters %}<option value="{{ recipient.pk }}">{{ recipient.name }}</option>{% endfor %}
+</select>

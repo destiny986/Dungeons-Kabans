@@ -1,0 +1,15 @@
+<form class="chat-composer" method="post" action="{% url 'game:chat_send' %}" hx-post="{% url 'game:chat_send' %}" hx-target="#dialog-content" data-chat-form>{% csrf_token %}{% include 'game/_request_id.html' %}{% if is_master %}
+<label class="sr-only" for="chat-recipient">Получатель
+</label>
+<select name="recipient_id" id="chat-recipient" data-poll-include><option value="">Выберите получателя</option>{% for recipient in characters %}<option value="{{ recipient.pk }}">{{ recipient.name }}</option>{% endfor %}
+</select>{% else %}
+<input type="hidden" name="character_id" value="{{ character.pk }}"><span class="chat-to">Личное сообщение мастеру</span>{% endif %}
+<div class="chat-input-row">
+<label class="sr-only" for="chat-text">Сообщение
+</label>
+<textarea name="text" id="chat-text" rows="2" required maxlength="10000" placeholder="Написать сообщение…">
+</textarea>
+<button class="button" type="submit" aria-label="Отправить сообщение">↑
+</button>
+</div><span class="help">Enter — новая строка · Ctrl + Enter — отправить</span>
+</form>

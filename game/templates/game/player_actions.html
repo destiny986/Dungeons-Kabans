@@ -1,0 +1,31 @@
+{% if character.can_cast %}
+<dl class="quick-stats spell-stats">
+<div>
+<dt>Заклинательная характеристика
+</dt>
+<dd>{{ character.get_spellcasting_ability_display }}
+</dd>
+</div>
+<div>
+<dt>Сложность спасброска
+</dt>
+<dd>{{ character.spell_save_dc }}
+</dd>
+</div>
+<div>
+<dt>Бонус атаки заклинанием
+</dt>
+<dd>+{{ character.spell_attack_bonus }}
+</dd>
+</div>
+</dl>{% endif %}{% for section in action_sections %}{% if section.actions %}
+<section class="action-section">
+<h2>{{ section.label }}
+</h2>
+<div class="icon-grid">{% for action in section.actions %}{% include 'game/icon.html' with object=action kind='action' %}{% endfor %}
+</div>
+</section>{% endif %}{% empty %}
+<div class="empty-state"><span aria-hidden="true">ϟ</span>
+<p>Книга действий пока пуста
+</p><small>Мастер добавит доступные вам действия и заклинания.</small>
+</div>{% endfor %}

@@ -1,0 +1,80 @@
+{% extends 'game/base.html' %}{% block title %}Управление данными{% endblock %}{% block nav %}<a href="{% url 'game:master' %}">← Стол мастера</a>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">Архив приключения
+</p>
+<h1>Управление базой данных
+</h1>
+</div>
+</div>{% include 'game/_errors.html' %}
+<div class="data-counts">{% for count in counts %}
+<div class="paper"><strong>{{ count.count }}</strong><span>{{ count.label }}</span>
+</div>{% endfor %}
+</div>
+<div class="data-grid">
+<section class="paper data-section"><span class="section-glyph" aria-hidden="true">↓</span>
+<h2>Сохранить мир
+</h2>
+<p>Скачайте все события, предметы, действия, персонажей и изображения в одном ZIP-архиве.
+</p><a class="button" href="{% url 'game:export' %}">Скачать действующий набор данных</a>
+<p class="help">Сохраните копию перед крупными изменениями.
+</p>
+</section>
+<section class="paper data-section"><span class="section-glyph" aria-hidden="true">↑</span>
+<h2>Загрузить архив
+</h2>
+<p>Записи добавятся к текущему набору. Перед сохранением вы сможете сравнить найденные дубликаты.
+</p>
+<form method="post" action="{% url 'game:import_upload' %}" enctype="multipart/form-data">{% csrf_token %}{% include 'game/_request_id.html' %}
+<div class="field">
+<label for="archive">ZIP-архив данных
+</label>
+<input type="file" id="archive" name="archive" accept=".zip,application/zip" required>{% if form.archive.errors %}{{ form.archive.errors }}{% endif %}
+</div>
+<button class="button">Загрузить данные на сервер
+</button>
+</form>
+</section>
+</div>
+<section class="paper danger-zone">
+<div>
+<h2>Очистить базу данных
+</h2>
+<p>Выберите категории для удаления. Это действие также удаляет связанные изображения и записи.
+</p>
+</div>
+<button class="button danger" type="button" data-open="wipe-dialog">Очистить базу данных
+</button>
+</section>{% endblock %}{% block extra %}
+<dialog id="wipe-dialog" aria-labelledby="wipe-title">
+<button class="dialog-close" type="button" data-close aria-label="Закрыть">×
+</button>
+<p class="eyebrow">Необратимое действие
+</p>
+<h2 id="wipe-title">Что удалить из игры?
+</h2>
+<p>Все записи выбранных категорий будут удалены. Сначала сохраните архив, если они могут понадобиться.
+</p>
+<form method="post" action="{% url 'game:wipe' %}" data-confirm="Безвозвратно удалить выбранные категории?">{% csrf_token %}{% include 'game/_request_id.html' %}
+<fieldset><legend>Категории</legend>
+<label class="check-row">
+<input type="checkbox" name="categories" value="events">События
+</label>
+<label class="check-row">
+<input type="checkbox" name="categories" value="items">Предметы
+</label>
+<label class="check-row">
+<input type="checkbox" name="categories" value="actions">Действия и заклинания
+</label>
+<label class="check-row">
+<input type="checkbox" name="categories" value="characters">Персонажи
+</label>
+</fieldset>
+<div class="button-row">
+<button class="button danger" data-require-selection>Удалить выбранное
+</button>
+<button class="button secondary" type="button" data-close>Отмена
+</button>
+</div>
+</form>
+</dialog>{% endblock %}

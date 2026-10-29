@@ -1,0 +1,17 @@
+{% for message in messages %}
+<article class="chat-message{% if message.from_master %} from-master{% endif %}" data-message-id="{{ message.pk }}">
+<header><strong>{% if message.from_master %}Мастер{% else %}{{ message.sender_character.name|default:'Приключенец' }}{% endif %}</strong><time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:'H:i' }}</time>
+</header>{% if not character %}
+<div class="chat-recipients">{% for recipient in message.recipients.all %}{{ recipient.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+</div>{% endif %}{% if message.text %}
+<p class="prose">{{ message.text|linebreaksbr }}
+</p>{% endif %}{% if message.event %}<a class="event-card event-{{ message.event.color }}" href="{% url 'game:card' 'event' message.event.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-get="{% url 'game:card' 'event' message.event.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-target="#dialog-content" data-dialog>
+<h3>{{ message.event.name }}
+</h3>
+<p>{{ message.event.description }}
+</p></a>{% endif %}{% if message.item %}<a class="subject-link" href="{% url 'game:card' 'item' message.item.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-get="{% url 'game:card' 'item' message.item.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-target="#dialog-content" data-dialog>◇ {{ message.item.name }}</a>{% endif %}{% if message.action %}<a class="subject-link" href="{% url 'game:card' 'action' message.action.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-get="{% url 'game:card' 'action' message.action.pk %}{% if character %}?character={{ character.pk }}{% endif %}" hx-target="#dialog-content" data-dialog>ϟ {{ message.action.name }}</a>{% endif %}{% if message.metadata.slot_level %}<small class="resource-note">Потрачена ячейка {{ message.metadata.slot_level }} уровня</small>{% elif message.metadata.used_level %}<small class="resource-note">Потрачена ячейка {{ message.metadata.used_level }} уровня</small>{% endif %}
+</article>{% empty %}
+<div class="empty-state"><span aria-hidden="true">❞</span>
+<p>Первые строки истории ещё не написаны
+</p><small>Сообщения и события игры появятся здесь.</small>
+</div>{% endfor %}

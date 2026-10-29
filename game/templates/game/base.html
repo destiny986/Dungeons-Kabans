@@ -1,0 +1,37 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#243e34"><title>{% block title %}Дневник приключений{% endblock %} · Dungeons & Kabans</title><link rel="stylesheet" href="{% static 'game/vendor/gridstack.min.css' %}"><link rel="stylesheet" href="{% static 'game/app.css' %}"><script defer src="{% static 'game/vendor/htmx.min.js' %}"></script><script defer src="{% static 'game/vendor/gridstack-all.js' %}"></script><script defer src="{% static 'game/app.js' %}"></script>
+</head>
+<body hx-headers='{"X-CSRFToken":"{{ csrf_token }}"}'><a class="skip-link" href="#main">К содержимому</a>
+<header class="app-header"><a href="{% url 'game:index' %}" class="brand"><span class="brand-mark" aria-hidden="true">✧</span><span>Dungeons <i>&</i> Kabans<small>ДНЕВНИК ПРИКЛЮЧЕНИЙ</small></span></a>
+<nav aria-label="Навигация">{% block nav %}<a href="{% url 'game:index' %}">В начало</a>{% endblock %}
+</nav>
+</header>
+<main id="main" class="{% block main_class %}page{% endblock %}">{% if messages and not character and not events %}{% endif %}{% block content %}{% endblock %}
+</main>
+<footer class="app-footer">Броски решают многое. Историю создаёте вы. <span>✦</span>
+</footer>
+<div id="notifications" role="status" aria-live="polite">
+</div>
+<dialog id="app-dialog" aria-label="Карточка">
+<button type="button" class="dialog-close" data-close aria-label="Закрыть">×
+</button>
+<div id="dialog-content">
+</div>
+</dialog><template id="confirm-template">
+<section class="confirmation">
+<p class="eyebrow">Важное решение
+</p>
+<h2>Подтвердить действие?
+</h2>
+<p data-confirm-text>
+</p>
+<div class="button-row">
+<button type="button" class="button" data-confirm-yes>Подтвердить
+</button>
+<button type="button" class="button secondary" data-close>Отмена
+</button>
+</div>
+</section></template>{% block extra %}{% endblock %}
+</body>
+</html>

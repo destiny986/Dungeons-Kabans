@@ -1,0 +1,48 @@
+{% extends 'game/base.html' %}{% block title %}{{ character.name }}{% endblock %}{% block main_class %}page player-page{% endblock %}{% block nav %}<span class="role-label">Лист персонажа</span><a href="{% url 'game:index' %}">Сменить роль</a>{% endblock %}{% block content %}
+<div id="poller" hx-get="{% url 'game:player_poll' character.pk %}" hx-trigger="every 5s [document.visibilityState === 'visible'], refresh" hx-swap="none" hx-include="[data-poll-include]" aria-hidden="true">
+</div>
+<input type="hidden" id="active-tab" name="active_tab" value="stats" data-poll-include>
+<section class="paper character-banner" id="player-summary">{% include 'game/player_summary.html' %}
+</section>
+<div class="tabs" role="tablist" aria-label="Разделы персонажа">
+<button id="tab-stats" type="button" role="tab" aria-selected="true" aria-controls="pane-stats" data-tab="stats">Характеристики
+</button>
+<button id="tab-actions" type="button" role="tab" aria-selected="false" aria-controls="pane-actions" tabindex="-1" data-tab="actions">Действия <span class="desktop-word">и заклинания</span>
+</button>
+<button id="tab-inventory" type="button" role="tab" aria-selected="false" aria-controls="pane-inventory" tabindex="-1" data-tab="inventory">Предметы
+</button>
+<button id="tab-backstory" type="button" role="tab" aria-selected="false" aria-controls="pane-backstory" tabindex="-1" data-tab="backstory">Предыстория
+</button>
+<button id="tab-chat" type="button" role="tab" aria-selected="false" aria-controls="pane-chat" tabindex="-1" data-tab="chat">Чат <span id="chat-unread" class="unread" {% if not unread %}hidden{% endif %}>{{ unread }}</span>
+</button>
+</div>
+<section class="paper tab-pane" id="pane-stats" role="tabpanel" aria-labelledby="tab-stats">
+<div id="player-stats">{% include 'game/player_stats.html' %}
+</div>
+</section>
+<section class="paper tab-pane" id="pane-actions" role="tabpanel" aria-labelledby="tab-actions" hidden>
+<label class="sr-only" for="player-action-filter">Поиск действий
+</label>
+<input class="section-search" type="search" id="player-action-filter" placeholder="Найти действие или заклинание…" data-filter="player-actions">
+<div id="player-actions">{% include 'game/player_actions.html' %}
+</div>
+</section>
+<section class="paper tab-pane" id="pane-inventory" role="tabpanel" aria-labelledby="tab-inventory" hidden>
+<label class="sr-only" for="player-item-filter">Поиск предметов
+</label>
+<input class="section-search" type="search" id="player-item-filter" placeholder="Найти предмет…" data-filter="player-inventory">
+<div id="player-inventory">{% include 'game/player_inventory.html' %}
+</div>
+</section>
+<section class="paper tab-pane" id="pane-backstory" role="tabpanel" aria-labelledby="tab-backstory" hidden>
+<div id="player-backstory">{% include 'game/player_backstory.html' %}
+</div>
+</section>
+<section class="paper tab-pane player-chat" id="pane-chat" role="tabpanel" aria-labelledby="tab-chat" hidden data-read-url="{% url 'game:chat_read' character.pk %}">
+<header class="section-heading">
+<h2>Разговор с мастером
+</h2><span class="panel-caption">Видите только вы и мастер</span>
+</header>
+<div id="player-messages" class="chat-messages" data-chat-scroll>{% include 'game/chat_messages.html' %}
+</div>{% include 'game/chat_form.html' %}
+</section>{% endblock %}

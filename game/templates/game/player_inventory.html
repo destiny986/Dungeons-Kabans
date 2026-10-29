@@ -1,0 +1,35 @@
+{% if weapons %}
+<h2>Оружие
+</h2>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Название
+</th>
+<th>Бонус атаки
+</th>
+<th>Урон и вид
+</th>
+</tr>
+</thead>
+<tbody>{% for weapon in weapons %}{% if weapon.name %}
+<tr>
+<td>{{ weapon.name }}
+</td>
+<td>{{ weapon.attack }}
+</td>
+<td>{{ weapon.damage }}
+</td>
+</tr>{% endif %}{% endfor %}
+</tbody>
+</table>
+</div>{% endif %}
+<h2>В рюкзаке
+</h2>
+<div class="icon-grid">{% for entry in inventory %}{% include 'game/icon.html' with object=entry.item kind='item' quantity=entry.quantity %}{% empty %}
+<div class="empty-state"><span aria-hidden="true">◇</span>
+<p>Рюкзак пока пуст
+</p><small>Полученные от мастера предметы появятся здесь.</small>
+</div>{% endfor %}
+</div>

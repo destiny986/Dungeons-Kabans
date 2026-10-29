@@ -1,0 +1,10 @@
+<article class="import-card {% if kind == 'event' %}event-{{ object.color }}{% endif %}">
+<h3>{{ object.name }}
+</h3>{% if object.preview_icon %}<img src="{{ object.preview_icon }}" alt="" width="64" height="64">{% elif object.icon %}<img src="{% url 'game:media' object.icon.digest %}" alt="" width="64" height="64">{% endif %}
+<div class="prose">{{ object.description|linebreaksbr }}
+</div>{% if kind == 'action' %}
+<div class="action-meta">{{ object.activation_display|default:object.activation }} · {{ object.resource_display|default:object.resource }}{% if object.slot_level %} · {{ object.slot_level }} уровень{% endif %}
+</div>{% endif %}
+<div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
+</div>
+</article>

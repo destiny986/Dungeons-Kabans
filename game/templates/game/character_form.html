@@ -1,0 +1,187 @@
+{% extends 'game/base.html' %}{% block title %}{% if is_edit %}Редактирование персонажа{% else %}Новый персонаж{% endif %}{% endblock %}{% block nav %}<a href="{% url 'game:characters' %}">← Все персонажи</a>{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">Лист героя
+</p>
+<h1>{% if is_edit %}Редактировать персонажа{% else %}Создать персонажа{% endif %}
+</h1>
+</div>
+</div>
+<form method="post" enctype="multipart/form-data" class="character-editor" data-preview-form>{% csrf_token %}{% include 'game/_request_id.html' %}{% include 'game/_errors.html' %}{% include 'game/_hidden_fields.html' %}
+<div class="editor-layout">
+<div>
+<section class="paper form-section">
+<h2><span class="section-number">01</span> Личность
+</h2>
+<div class="form-grid">{% include 'game/_field.html' with field=form.name label='Имя персонажа' %}{% include 'game/_field.html' with field=form.character_class label='Класс персонажа' %}
+</div>{% include 'game/_field.html' with field=form.portrait label='Портрет · PNG' %}{% include 'game/_field.html' with field=form.backstory label='Предыстория' %}{% include 'game/_field.html' with field=form.traits label='Черты и свойства' %}
+</section>
+<section class="paper form-section">
+<h2><span class="section-number">02</span> Характеристики
+</h2>
+<div class="form-grid health-fields">{% include 'game/_field.html' with field=form.health_current label='Текущее здоровье' %}{% include 'game/_field.html' with field=form.health_max label='Максимальное здоровье' %}{% include 'game/_field.html' with field=form.speed label='Скорость' %}{% include 'game/_field.html' with field=form.armor_class label='Класс доспеха' %}{% include 'game/_field.html' with field=form.proficiency_bonus label='Бонус мастерства' %}
+</div>
+<div class="ability-editor-heading"><span>Основная</span><span>Характеристика</span><span>Спасбросок</span>
+</div>
+<div class="ability-editor">{% for row in form.ability_rows %}
+<div class="ability-edit-row">
+<div class="signed-input">
+<label class="sr-only" for="{{ row.ability.id_for_label }}">{{ row.label }}
+</label>{{ row.ability }}{{ row.ability.errors }}
+</div><span>{{ row.label }}</span>
+<div class="signed-input">
+<label class="sr-only" for="{{ row.save.id_for_label }}">Спасбросок: {{ row.label }}
+</label>{{ row.save }}{{ row.save.errors }}
+</div>
+</div>{% endfor %}
+</div>
+<h3>Навыки
+</h3>
+<div class="form-grid skills-editor">{% for row in form.skill_rows %}{% include 'game/_field.html' with field=row.field label=row.label %}{% endfor %}
+</div>
+</section>
+<section class="paper form-section">
+<h2><span class="section-number">03</span> Ресурсы и способности
+</h2>
+<div class="toggle-field">{% include 'game/_field.html' with field=form.can_cast label='Способен к магии' %}
+</div>
+<div data-capability="can_cast">
+<h3>Ячейки заклинаний
+</h3>
+<div class="table-scroll">
+<table class="resource-table">
+<thead>
+<tr>
+<th>Уровень
+</th>{% for row in form.slot_rows %}
+<th>{{ row.label }}
+</th>{% endfor %}
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>Максимум
+</th>{% for row in form.slot_rows %}
+<td>
+<label class="sr-only" for="{{ row.maximum.id_for_label }}">Максимум ячеек {{ row.label }}
+</label>{{ row.maximum }}{{ row.maximum.errors }}
+</td>{% endfor %}
+</tr>
+<tr>
+<th>Сейчас
+</th>{% for row in form.slot_rows %}
+<td>
+<label class="sr-only" for="{{ row.current.id_for_label }}">Текущие ячейки {{ row.label }}
+</label>{{ row.current }}{{ row.current.errors }}
+</td>{% endfor %}
+</tr>
+</tbody>
+</table>
+</div>
+<div class="form-grid">{% include 'game/_field.html' with field=form.spellcasting_ability label='Заклинательная характеристика' %}{% include 'game/_field.html' with field=form.spell_save_dc label='Сложность спасброска' %}{% include 'game/_field.html' with field=form.spell_attack_bonus label='Бонус атаки заклинанием' %}
+</div>
+</div>
+<div class="toggle-field">{% include 'game/_field.html' with field=form.can_rage label='Способен к ярости' %}
+</div>
+<div class="form-grid" data-capability="can_rage">{% include 'game/_field.html' with field=form.rage_current label='Ярость · сейчас' %}{% include 'game/_field.html' with field=form.rage_maximum label='Ярость · максимум' %}
+</div>
+<div class="toggle-field">{% include 'game/_field.html' with field=form.can_wildshape label='Способен к перевоплощению друида' %}
+</div>
+<div class="form-grid" data-capability="can_wildshape">{% include 'game/_field.html' with field=form.wildshape_current label='Дикий облик · сейчас' %}{% include 'game/_field.html' with field=form.wildshape_maximum label='Дикий облик · максимум' %}
+</div>
+</section>
+<section class="paper form-section">
+<h2><span class="section-number">04</span> Оружие
+</h2>
+<p class="help">До пяти записей. Заполните все три поля используемой строки.
+</p>{% for row in form.weapon_rows %}
+<fieldset class="weapon-row"><legend>{{ row.label }}</legend>
+<div class="form-grid">{% include 'game/_field.html' with field=row.name label='Название' %}{% include 'game/_field.html' with field=row.attack label='Бонус атаки' %}{% include 'game/_field.html' with field=row.damage label='Урон и вид' %}
+</div>
+</fieldset>{% endfor %}
+</section>
+<section class="paper form-section">
+<h2><span class="section-number">05</span> Действия и заклинания
+</h2>
+<label class="sr-only" for="action-choose-filter">Найти действие
+</label>
+<input id="action-choose-filter" type="search" placeholder="Поиск действий и заклинаний…" data-filter="action-choices">
+<div id="action-choices" class="catalog-choices">{% for row in form.action_rows %}
+<div class="choice-row" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
+<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>{{ row.activation }} · {{ row.resource }}</small>
+</label>{{ row.field }}{{ row.field.errors }}
+</div>{% empty %}
+<p class="help">Сначала создайте действия и заклинания в каталоге мастера.
+</p>{% endfor %}
+</div>
+</section>
+<section class="paper form-section">
+<h2><span class="section-number">06</span> Инвентарь
+</h2>
+<label class="sr-only" for="item-choose-filter">Найти предмет
+</label>
+<input id="item-choose-filter" type="search" placeholder="Поиск предметов…" data-filter="item-choices">
+<div id="item-choices" class="catalog-choices">{% for row in form.item_rows %}
+<div class="choice-row" data-search="{{ row.search_text }} {{ row.label }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
+<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>Количество · 0, если нет в рюкзаке</small>
+</label>{{ row.field }}{{ row.field.errors }}
+</div>{% empty %}
+<p class="help">Сначала создайте предметы в каталоге мастера.
+</p>{% endfor %}
+</div>
+</section>
+</div>
+<aside class="preview-aside">
+<p class="eyebrow">На страницах дневника
+</p>
+<h2>Предпросмотр героя
+</h2>
+<section class="paper character-card">
+<div class="preview-portrait">{% if object.portrait %}<img data-preview-image src="{% url 'game:media' object.portrait.digest %}" alt="Портрет персонажа">{% else %}<img data-preview-image alt="Портрет персонажа" hidden><span class="portrait-empty">♙</span>{% endif %}
+</div>
+<h2 data-preview="name">{{ object.name|default:'Имя персонажа' }}
+</h2>
+<p data-preview="character_class">{{ object.character_class|default:'Класс персонажа' }}
+</p>
+<div class="health-text">♥ <span data-preview="health_current">{{ object.health_current|default:0 }}</span> / <span data-preview="health_max">{{ object.health_max|default:0 }}</span>
+</div>
+<dl class="quick-stats">
+<div>
+<dt>Скорость
+</dt>
+<dd data-preview="speed">{{ object.speed|default:0 }}
+</dd>
+</div>
+<div>
+<dt>КД
+</dt>
+<dd data-preview="armor_class">{{ object.armor_class|default:0 }}
+</dd>
+</div>
+<div>
+<dt>Мастерство
+</dt>
+<dd data-preview="proficiency_bonus">{{ object.proficiency_bonus|default:0 }}
+</dd>
+</div>
+</dl>
+</section>
+<section class="paper preview-full">
+<h3>Предыстория
+</h3>
+<p class="prose" data-preview="backstory">{{ object.backstory|default:'Здесь начинается история…' }}
+</p>
+<h3>Черты и свойства
+</h3>
+<p class="prose" data-preview="traits">{{ object.traits|default:'Особые черты героя' }}
+</p>
+</section>
+</aside>
+</div>
+<div class="sticky-save"><span>Запишите героя в историю</span>
+<div class="button-row"><a class="button secondary" href="{% url 'game:characters' %}">Отмена</a>
+<button class="button" type="submit">Сохранить персонажа
+</button>
+</div>
+</div>
+</form>{% endblock %}
