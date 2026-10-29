@@ -133,3 +133,34 @@ class FormTests(TransactionTestCase):
         message.recipients.add(char)
         Character.objects.filter(pk=char.pk).delete()
         self.assertFalse(ChatMessage.objects.filter(pk=message.pk).exists())
+
+    def test_database_integer_overflow_is_a_retained_russian_field_error(self):
+        item = forms.get_catalog_form('item', {'name':'Меч','description':'x'}, {'icon':png()}).save()
+        huge = str(10 ** 30)
+        fields = ['health_current', 'health_max', 'speed', 'armor_class', 'proficiency_bonus',
+                  'spell_save_dc', 'spell_attack_bonus', 'rage_current', 'rage_maximum',
+                  'wildshape_current', 'wildshape_maximum', f'item_{item.pk}']
+        fields += [f'slot_{level}_{suffix}' for level in range(1,8) for suffix in ('current','maximum')]
+        for field in fields:
+            with self.subTest(field=field):
+                data = character_data(can_cast='on',can_rage='on',can_wildshape='on',
+                                      spellcasting_ability='int',spell_save_dc=0,spell_attack_bonus=0,
+                                      rage_current=0,rage_maximum=0,wildshape_current=0,wildshape_maximum=0)
+                for level in range(1,8):
+                    data.update({f'slot_{level}_current':0,f'slot_{level}_maximum':0})
+                data[field] = huge
+                form = forms.CharacterForm(data)
+                self.assertFalse(form.is_valid())
+                self.assertIn(field, form.errors)
+                self.assertIn('Значение слишком велико.', form.errors[field])
+                self.assertEqual(form[field].value(), huge)
+        self.assertFalse(Character.objects.exists())
+
+    def test_signed_json_statistics_do_not_inherit_database_integer_bounds(self):
+        huge = 10 ** 30
+        form = forms.CharacterForm(character_data(ability_str=huge,save_str=-huge,skill_arcana=huge))
+        self.assertTrue(form.is_valid(), form.errors)
+        char = form.save()
+        self.assertEqual(char.abilities['str'], huge)
+        self.assertEqual(char.saves['str'], -huge)
+        self.assertEqual(char.skills['arcana'], huge)

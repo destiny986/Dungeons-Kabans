@@ -1,6 +1,7 @@
 """Russian journal forms with atomic optimistic concurrency checks."""
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import transaction
 
 from .constants import ABILITY_CHOICES, SKILL_CHOICES, COLOR_CHOICES, ACTIVATION_CHOICES, ACTION_RESOURCE_CHOICES
@@ -18,6 +19,16 @@ class StaleEdit(ValidationError):
 
 def integer(label='', **kwargs):
     return forms.IntegerField(label=label, error_messages={'required':'Заполните это поле.', 'invalid':'Введите целое число.', 'min_value':'Значение не может быть отрицательным.', 'max_value':'Значение слишком велико.'}, **kwargs)
+
+
+def database_integer(model, name, label='', **kwargs):
+    """Reuse model/database upper bounds without bounding signed JSON values."""
+    maxima = [validator.limit_value() if callable(validator.limit_value) else validator.limit_value
+              for validator in model._meta.get_field(name).validators
+              if isinstance(validator, MaxValueValidator)]
+    if maxima:
+        kwargs['max_value'] = min(maxima + ([kwargs['max_value']] if 'max_value' in kwargs else []))
+    return integer(label, **kwargs)
 
 
 class RevisionForm(forms.Form):
@@ -162,17 +173,17 @@ class CharacterForm(RevisionForm):
     portrait = forms.FileField(label='Портрет PNG', required=False)
     backstory = forms.CharField(label='Предыстория', widget=forms.Textarea, required=False)
     traits = forms.CharField(label='Черты', widget=forms.Textarea, required=False)
-    health_current = integer('Здоровье', min_value=0, initial=0)
-    health_max = integer('Максимальное здоровье', min_value=0, initial=0)
-    speed = integer('Скорость', min_value=0, initial=0)
-    armor_class = integer('Класс брони', min_value=0, initial=0)
-    proficiency_bonus = integer('Бонус мастерства', min_value=0, initial=0)
+    health_current = database_integer(Character, 'health_current', 'Здоровье', min_value=0, initial=0)
+    health_max = database_integer(Character, 'health_max', 'Максимальное здоровье', min_value=0, initial=0)
+    speed = database_integer(Character, 'speed', 'Скорость', min_value=0, initial=0)
+    armor_class = database_integer(Character, 'armor_class', 'Класс брони', min_value=0, initial=0)
+    proficiency_bonus = database_integer(Character, 'proficiency_bonus', 'Бонус мастерства', min_value=0, initial=0)
     can_cast = forms.BooleanField(label='Заклинания', required=False)
     can_rage = forms.BooleanField(label='Ярость', required=False)
     can_wildshape = forms.BooleanField(label='Дикий облик', required=False)
     spellcasting_ability = forms.ChoiceField(label='Характеристика заклинаний', choices=(('', '—'),) + ABILITY_CHOICES, required=False)
-    spell_save_dc = integer('Сложность спасброска', min_value=0, required=False, initial=0)
-    spell_attack_bonus = integer('Атака заклинанием', min_value=0, required=False, initial=0)
+    spell_save_dc = database_integer(Character, 'spell_save_dc', 'Сложность спасброска', min_value=0, required=False, initial=0)
+    spell_attack_bonus = database_integer(Character, 'spell_attack_bonus', 'Атака заклинанием', min_value=0, required=False, initial=0)
 
     def __init__(self, data=None, files=None, instance=None, **kwargs):
         # Read the entity and all editable relationships within one database snapshot.
@@ -197,7 +208,7 @@ class CharacterForm(RevisionForm):
             values = self.resource_snapshot.get((kind,level),(0,0))
             self.resource_fields.append((kind,level,prefix))
             for index, suffix in enumerate(('current','maximum')):
-                self.fields[f'{prefix}_{suffix}'] = integer(min_value=0, required=False, initial=values[index])
+                self.fields[f'{prefix}_{suffix}'] = database_integer(CharacterResource, suffix, min_value=0, required=False, initial=values[index])
                 if self.is_bound and not self.fields[{'spell_slot':'can_cast','rage':'can_rage','wildshape':'can_wildshape'}[kind]].widget.value_from_datadict(self.data, self.files, {'spell_slot':'can_cast','rage':'can_rage','wildshape':'can_wildshape'}[kind]):
                     # Ignore hidden capability values on the server, while leaving
                     # rendered controls usable if the user toggles the capability.
@@ -207,7 +218,7 @@ class CharacterForm(RevisionForm):
                 self.fields[f'weapon_{n}_{key}'] = forms.CharField(required=False, max_length=30,
                     initial=instance.weapons[n-1][key] if instance else '', error_messages={'max_length':'Не более 30 символов.'})
         for item in self.items:
-            self.fields[f'item_{item.pk}'] = integer(item.name, min_value=0, required=False, initial=inventory.get(item.pk,0))
+            self.fields[f'item_{item.pk}'] = database_integer(InventoryEntry, 'quantity', item.name, min_value=0, required=False, initial=inventory.get(item.pk,0))
         for action in self.actions:
             self.fields[f'action_{action.pk}'] = forms.BooleanField(label=action.name, required=False, initial=action.pk in actions)
 
