@@ -42,3 +42,14 @@ def test_paths_cannot_escape_storage(value):
     from game.validators import validate_relative_path
     with pytest.raises(ValidationError):
         validate_relative_path(value)
+
+
+def test_windows_root_relative_path_cannot_escape_media_root():
+    from game.validators import validate_relative_path
+    with pytest.raises(ValidationError):
+        validate_relative_path(r"\outside\file.png")
+
+
+def test_valid_nested_storage_path_is_accepted():
+    from game.validators import validate_relative_path
+    validate_relative_path("icons/portrait.png")

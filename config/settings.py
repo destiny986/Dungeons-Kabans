@@ -49,3 +49,10 @@ MASTER_PASSWORD = os.environ.get("MASTER_PASSWORD", "")
 
 # Gunicorn is reachable only through the trusted loopback reverse proxy.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_SSL_REDIRECT = not IS_LOCAL
+SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+# This shared IP hosts unrelated services on other ports. HSTS is host-wide,
+# not port-scoped, so enable it only after moving to a dedicated hostname.
+SECURE_HSTS_SECONDS = 0
+SILENCED_SYSTEM_CHECKS = ["security.W004"]

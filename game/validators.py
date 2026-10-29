@@ -45,7 +45,7 @@ def validate_json_dict(value):
 
 def validate_relative_path(value):
     posix, windows = PurePosixPath(value), PureWindowsPath(value)
-    if not value or posix.is_absolute() or windows.is_absolute() or windows.drive or ".." in posix.parts or ".." in windows.parts:
+    if not value or posix.is_absolute() or windows.is_absolute() or windows.drive or windows.root or ".." in posix.parts or ".." in windows.parts:
         raise ValidationError("Expected a relative path without parent traversal.")
 
 def default_abilities():
