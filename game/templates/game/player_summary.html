@@ -11,8 +11,8 @@
 <div class="health-block">
 <label for="health-current">Здоровье
 </label>
-<form action="{% url 'game:health' character.pk %}" method="post" hx-post="{% url 'game:health' character.pk %}" hx-trigger="change" hx-target="#dialog-content" data-health-form>{% csrf_token %}{% include 'game/_request_id.html' %}<span aria-hidden="true">♥</span>
-<input type="number" min="0" step="1" required id="health-current" name="health_current" value="{{ character.health_current }}" aria-label="Текущее здоровье"><span class="health-max">/ {{ character.health_max }}</span><noscript>
+<form action="{% url 'game:health' character.pk %}" method="post" hx-post="{% url 'game:health' character.pk %}" hx-trigger="change" hx-target="#dialog-content" data-health-form novalidate>{% csrf_token %}{% include 'game/_request_id.html' %}<span aria-hidden="true">♥</span>
+<input type="number" min="0" step="1" required id="health-current" data-saved-value="{{ character.health_current }}" name="health_current" value="{{ character.health_current }}" aria-label="Текущее здоровье"><span class="health-max">/ {{ character.health_max }}</span><noscript>
 <button type="submit">Сохранить
 </button></noscript>
 </form>

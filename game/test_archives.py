@@ -2,6 +2,7 @@ import io
 import json
 import tempfile
 import zipfile
+import threading
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -10,6 +11,7 @@ from PIL import Image
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
+from django.db import close_old_connections
 
 from game.models import (Event, ImportJob, Item, Action, Character, CharacterResource,
                          InventoryEntry, CharacterAction, MediaAsset, CharacterInvitation, CharacterGrant, ChatMessage)
@@ -272,3 +274,103 @@ class ArchiveTests(TransactionTestCase):
         self.assertFalse((Path(self.tmp.name)/'imports'/str(job.pk)).exists())
         media.asset_path(item.icon).unlink()
         with self.assertRaises(ValidationError):export_archive()
+
+    def conflicting_images(self):
+        asset=media.store_png(png('red'),size=256)
+        item=Item.objects.create(name='Conflict',description='Old',tags=[],icon=asset)
+        def transform(entries):
+            entries[asset.digest+'.png']=png('green').getvalue()
+        return item,asset,rewrite(export_archive(),transform).getvalue()
+
+    def test_cancel_releases_preview_only_asset_and_keeps_other_job_protection(self):
+        item,asset,content=self.conflicting_images()
+        first=create_import(io.BytesIO(content),'a'*32)
+        second=create_import(io.BytesIO(content),'a'*32)
+        path=media.asset_path(asset)
+        item.delete();media.release_assets([asset.pk])
+        self.assertTrue(path.exists())
+        cancel_import(first.pk,'a'*32)
+        self.assertTrue(path.exists())
+        cancel_import(second.pk,'a'*32)
+        self.assertFalse(MediaAsset.objects.filter(pk=asset.pk).exists())
+        self.assertFalse(path.exists())
+
+    def test_stale_preview_releases_dropped_existing_image(self):
+        item,asset,content=self.conflicting_images()
+        job=create_import(io.BytesIO(content),'a'*32)
+        item.delete();media.release_assets([asset.pk])
+        with self.assertRaises(StaleImport):commit_import(job.pk,'a'*32,{})
+        self.assertFalse(MediaAsset.objects.filter(pk=asset.pk).exists())
+        self.assertFalse(media.asset_path(asset).exists())
+        job.refresh_from_db();self.assertEqual(job.status,'review')
+
+    def test_empty_and_partial_resource_sets_rejected_and_legacy_export_roundtrips(self):
+        char,item,action=self.domain()
+        content=export_archive()
+        for count in (0,1,8):
+            def transform(entries):
+                rows=json.loads(entries['characters.json']);rows[0]['resources']=rows[0]['resources'][:count]
+                entries['characters.json']=json.dumps(rows)
+            with self.assertRaises(ValidationError):create_import(rewrite(content,transform),'a'*32)
+        char.resources.filter(kind='rage').delete()
+        job=create_import(io.BytesIO(export_archive()),'a'*32)
+        self.assertEqual(len(job.payload['data']['characters'][0]['resources']),9)
+        self.assertEqual(char.resources.count(),8)  # exporting is read-only
+
+    def test_cleanup_cannot_cancel_aged_running_staging(self):
+        from game.archives import service
+        loaded=threading.Event();resume=threading.Event();outcome=[]
+        original=service._load
+        def paused(upload,directory):
+            result=original(upload,directory)
+            loaded.set()
+            if not resume.wait(10):raise RuntimeError('test timeout')
+            return result
+        def worker():
+            close_old_connections()
+            try:outcome.append(create_import(archive([self.event()]),'a'*32))
+            except Exception as exc:outcome.append(exc)
+            finally:close_old_connections()
+        with patch.object(service,'_load',side_effect=paused):
+            thread=threading.Thread(target=worker)
+            thread.start()
+            try:
+                self.assertTrue(loaded.wait(10))
+                job=ImportJob.objects.get()
+                ImportJob.objects.filter(pk=job.pk).update(updated_at=timezone.now()-timedelta(hours=25))
+                self.assertEqual(cleanup_imports(),0)
+                job.refresh_from_db();self.assertEqual(job.status,'staged')
+            finally:
+                resume.set();thread.join(10)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(outcome),1)
+        self.assertIsInstance(outcome[0],ImportJob)
+        job.refresh_from_db();self.assertEqual(job.status,'review')
+        self.assertTrue((Path(self.tmp.name)/'imports'/str(job.pk)/'upload.zip').exists())
+
+    def test_staging_rechecks_status_before_publish(self):
+        from game.archives import service
+        original=service._load
+        def cancelled(upload,directory):
+            result=original(upload,directory)
+            ImportJob.objects.filter(pk=directory.name).update(status='cancelled',payload={})
+            return result
+        with patch.object(service,'_load',side_effect=cancelled):
+            with self.assertRaises(ValidationError):create_import(archive([self.event()]),'a'*32)
+        self.assertFalse(ImportJob.objects.filter(status='review').exists())
+        self.assertFalse(any((Path(self.tmp.name)/'imports').glob('*')))
+
+    def test_abandoned_claim_cleanup_releases_preview_assets_after_worker_exit(self):
+        from game.archives import service
+        item,asset,content=self.conflicting_images()
+        job=create_import(io.BytesIO(content),'a'*32)
+        item.delete();media.release_assets([asset.pk])
+        ImportJob.objects.filter(pk=job.pk).update(status='staged',updated_at=timezone.now()-timedelta(hours=25))
+        with service._execution_claim(job) as claimed:
+            self.assertTrue(claimed)
+            self.assertEqual(cleanup_imports(),0)
+        # A dead worker's OS handle is closed, but the lock file remains.
+        self.assertEqual(cleanup_imports(),1)
+        self.assertFalse(MediaAsset.objects.filter(pk=asset.pk).exists())
+        self.assertFalse(media.asset_path(asset).exists())
+        self.assertFalse((Path(self.tmp.name)/'imports'/str(job.pk)).exists())

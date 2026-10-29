@@ -3,11 +3,14 @@ import base64
 import hashlib
 import io
 import json
+import os
+import errno
 import shutil
 import stat
 import uuid
 import zipfile
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,6 +30,7 @@ from .schema import SCHEMAS, CHARACTER
 MODELS = {'events':Event,'items':Item,'actions':Action,'characters':Character}
 MAX_UPLOAD = 50 * 1024**2
 MAX_EXPANDED = 250 * 1024**2
+RESOURCE_KEYS = [('spell_slot',level) for level in range(1,8)]+[('rage',0),('wildshape',0)]
 
 
 class StaleImport(ValidationError):
@@ -58,6 +62,43 @@ def _remove_directory(job):
         shutil.rmtree(path)
 
 
+@contextmanager
+def _execution_claim(job):
+    """Nonblocking OS lease: survives pauses, automatically expires on process exit.
+
+    This is a file lock rather than an age-based heartbeat, so a suspended live
+    worker cannot lose ownership to cleanup. No database lock spans PNG decoding.
+    """
+    directory=_directory(job)
+    if not directory.exists():
+        yield True
+        return
+    path=(directory/'.execution.lock').resolve()
+    if not path.is_relative_to(directory): raise ValidationError('Недопустимый каталог импорта.')
+    with path.open('a+b') as stream:
+        if stream.tell()==0:
+            stream.write(b'0');stream.flush()
+        stream.seek(0)
+        locked=False
+        try:
+            if os.name=='nt':
+                import msvcrt
+                msvcrt.locking(stream.fileno(),msvcrt.LK_NBLCK,1)
+            else:
+                import fcntl
+                fcntl.flock(stream.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+            locked=True
+        except OSError as exc:
+            if exc.errno not in (errno.EACCES,errno.EAGAIN,errno.EDEADLK): raise
+        try:
+            yield locked
+        finally:
+            if locked:
+                stream.seek(0)
+                if os.name=='nt': msvcrt.locking(stream.fileno(),msvcrt.LK_UNLCK,1)
+                else: fcntl.flock(stream.fileno(),fcntl.LOCK_UN)
+
+
 def _staged(job, digest):
     if len(digest)!=64 or any(c not in '0123456789abcdef' for c in digest):
         raise ValidationError('Недопустимое изображение.')
@@ -85,7 +126,11 @@ def _snapshot():
                         try: assets[row[field]] = media.asset_path(asset).read_bytes()
                         except OSError as exc: raise ValidationError('Отсутствует файл изображения: ' + asset.digest) from exc
             if kind == 'characters':
-                row['resources'] = list(obj.resources.order_by('kind','level').values('kind','level','current','maximum'))
+                resources={(r['kind'],r['level']):r for r in obj.resources.values('kind','level','current','maximum')}
+                # Legacy/raw-created characters may predate the nine-row form invariant.
+                # Export fills only absent rows with zeroes, without mutating live data.
+                row['resources'] = [resources.get((kind,level),dict(kind=kind,level=level,current=0,maximum=0))
+                                    for kind,level in RESOURCE_KEYS]
                 row['inventory'] = [{'item':str(e.item_id),'quantity':e.quantity} for e in obj.inventory.order_by('item__normalized_name')]
                 row['actions'] = [str(v) for v in obj.action_grants.order_by('action__normalized_name').values_list('action_id',flat=True)]
             rows.append(row)
@@ -143,6 +188,7 @@ def _validate_data(data):
                 if kind == 'characters':
                     resources = [(r['kind'],r['level']) for r in row['resources']]
                     if len(resources) != len(set(resources)): raise ValueError('Повтор ресурса')
+                    if set(resources)!=set(RESOURCE_KEYS): raise ValueError('Требуются все девять ресурсов персонажа')
                     for resource in row['resources']:
                         CharacterResource(character=obj,**resource).full_clean(exclude=['character'],validate_unique=False,validate_constraints=False)
                     members = [e['item'] for e in row['inventory']]
@@ -254,15 +300,24 @@ def create_import(upload, session_key):
     job.save()
     try:
         directory.mkdir(parents=True,exist_ok=False)
-        job.payload = _load(upload,directory)
-        with transaction.atomic():
-            _, job.preview, job.base_digest = _plan(job)
-            job.status='review'
-            job.save()
+        with _execution_claim(job) as claimed:
+            if not claimed: raise ValidationError('Импорт уже обрабатывается.')
+            job=_owned(job.pk,session_key)
+            if job.status!='staged': raise ValidationError('Импорт уже завершён.')
+            payload = _load(upload,directory)
+            with transaction.atomic():
+                # Cleanup/cancel must never be undone by a stale staging object.
+                job=_owned(job.pk,session_key,True)
+                if job.status!='staged': raise ValidationError('Импорт уже завершён.')
+                job.payload=payload
+                _, job.preview, job.base_digest = _plan(job)
+                job.status='review'
+                job.save()
         return job
     except Exception:
-        if ImportJob.objects.filter(pk=job.pk).exists():
-            job.payload={};job.preview={};job.status='failed';job.save()
+        with transaction.atomic():
+            current=_owned(job.pk,session_key,True)
+            if current.status=='staged': _finish(current,'failed')
         _remove_directory(job)
         raise
 
@@ -290,8 +345,24 @@ def get_preview(job, session_key):
     return result
 
 
+def _protected_asset_ids(job):
+    """Capture every asset reference before a payload/preview loses protection."""
+    tokens=set()
+    def collect(value):
+        if isinstance(value,dict):
+            for key,child in value.items():
+                tokens.add(str(key));collect(child)
+        elif isinstance(value,list):
+            for child in value: collect(child)
+        else: tokens.add(str(value))
+    collect(job.payload);collect(job.preview)
+    # Avoid an unbounded SQL IN clause for large but valid archives.
+    return [asset.pk for asset in MediaAsset.objects.only('pk','digest','path').iterator()
+            if str(asset.pk) in tokens or asset.digest in tokens or asset.path in tokens]
+
+
 def _finish(job,status):
-    ids = list(MediaAsset.objects.filter(digest__in=job.payload.get('assets',{})).values_list('id',flat=True))
+    ids = _protected_asset_ids(job)
     job.status=status
     job.payload={}
     job.preview={} if status!='complete' else job.preview
@@ -311,8 +382,10 @@ def commit_import(job_id, session_key, choices):
             _validate_data(job.payload['data'])
             groups, preview, baseline = _plan(job)
             if baseline!=job.base_digest:
+                previous_assets=_protected_asset_ids(job)
                 job.preview,job.base_digest = preview,baseline
                 job.save()
+                media.release_assets(previous_assets)
                 stale=True
             else:
                 required = {c['key'] for c in preview['conflicts']}
@@ -327,7 +400,7 @@ def commit_import(job_id, session_key, choices):
                     if hashlib.sha256(content).hexdigest()!=digest or meta['width'] not in (256,512) or meta['height']!=meta['width']:
                         raise ValidationError('Изображение изменено.')
                 job.status='committing';job.save()
-                mappings, old_assets = {}, []
+                mappings, old_assets = {}, _protected_asset_ids(job)
                 count = 0
                 for group in groups:
                     kind = group['kind']; selected=group['selected']; row=selected['row']
@@ -400,12 +473,19 @@ def cleanup_imports():
     count=0
     cutoff=timezone.now()-timedelta(hours=24)
     for pk in ImportJob.objects.filter(updated_at__lt=cutoff).values_list('pk',flat=True):
+        job=ImportJob.objects.get(pk=pk)
+        with _execution_claim(job) as claimed:
+            if not claimed: continue
+            with transaction.atomic():
+                job=ImportJob.objects.select_for_update().get(pk=pk)
+                if job.updated_at>=cutoff: continue
+                if job.status=='committing': continue
+                _directory(job)  # refuse tampered metadata before changing any status
+                if job.status not in ('complete','cancelled','failed'): _finish(job,'cancelled')
+        # Close the lease handle before deleting it, including on Windows.
         with transaction.atomic():
             job=ImportJob.objects.select_for_update().get(pk=pk)
-            if job.updated_at>=cutoff: continue
-            if job.status=='committing': continue
-            _directory(job)  # refuse tampered metadata before changing any status
-            if job.status not in ('complete','cancelled','failed'): _finish(job,'cancelled')
+            if job.status not in ('complete','cancelled','failed'): continue
             _remove_directory(job)
             count+=1
     return count

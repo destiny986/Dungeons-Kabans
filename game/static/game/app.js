@@ -35,14 +35,19 @@
   function applyFilter(input) {
     const root = document.getElementById(input.dataset.filter);
     if (!root) return;
-    const needle = input.value.trim().toLocaleLowerCase('ru');
+    const controls = qa('[data-filter]').filter(control => control.dataset.filter === input.dataset.filter);
+    const needle = (controls.find(control => control.type === 'search')?.value || '').trim().toLocaleLowerCase('ru');
+    const activation = controls.find(control => control.dataset.filterKey === 'activation')?.value || '';
+    const resource = controls.find(control => control.dataset.filterKey === 'resource')?.value || '';
+    const filtering = !!(needle || activation || resource);
     let matches = 0;
     qa('[data-search]', root).forEach(row => {
-      row.hidden = !row.dataset.search.toLocaleLowerCase('ru').includes(needle);
+      row.hidden = !row.dataset.search.toLocaleLowerCase('ru').includes(needle) ||
+        (!!activation && row.dataset.activation !== activation) || (!!resource && row.dataset.resource !== resource);
       if (!row.hidden) matches++;
     });
     let empty = q('.no-filter-results', root);
-    if (needle && !matches && qa('[data-search]', root).length) {
+    if (filtering && !matches && qa('[data-search]', root).length) {
       if (!empty) { empty = document.createElement('p'); empty.className = 'no-filter-results'; empty.textContent = 'Ничего не найдено. Попробуйте другой запрос.'; root.append(empty); }
     } else empty?.remove();
   }
@@ -79,10 +84,13 @@
   function markRead() {
     const pane = q('#pane-chat');
     if (!pane || pane.hidden || document.hidden || readPending) return;
-    const last = q('#player-messages .chat-message:last-child')?.dataset.messageId || 'empty';
+    const last = qa('#player-messages .chat-message').reduce((maximum, message) => {
+      const id = message.dataset.messageId || '0';
+      return BigInt(id) > BigInt(maximum) ? id : maximum;
+    }, '0');
     if (last === lastReadMessage) return;
     readPending = true;
-    fetch(pane.dataset.readUrl, { method: 'POST', credentials: 'same-origin', headers: {'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest'} })
+    fetch(pane.dataset.readUrl, { method: 'POST', credentials: 'same-origin', headers: {'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({through_id:last}) })
       .then(response => { if (!response.ok) throw new Error(); lastReadMessage = last; const badge = q('#chat-unread'); if (badge) { badge.hidden = true; badge.textContent = ''; } })
       .catch(() => { /* Retried on next poll; do not clear unread before success. */ })
       .finally(() => { readPending = false; });
@@ -130,6 +138,7 @@
     const form = event.target.closest('[data-preview-form]'); if (form) updatePreview(form);
   });
   document.addEventListener('change', event => {
+    if (event.target.matches('[data-filter]')) applyFilter(event.target);
     updateCapabilities();
     const form = event.target.closest('[data-preview-form]'); if (!form) return;
     updatePreview(form);
@@ -155,6 +164,9 @@
     if (key && !key.dataset.operationKey && !q('[name=proposal]',form)) { key.value = crypto.randomUUID(); key.dataset.operationKey = 'true'; }
   }, true);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); markRead(); } });
+  document.addEventListener('htmx:beforeRequest', event => {
+    if (event.detail.elt?.closest('form[data-health-form]')) { focusReturn = q('#health-current'); anchorPoint = null; }
+  });
   document.addEventListener('htmx:beforeSwap', event => {
     if ([409,422].includes(event.detail.xhr.status)) { event.detail.shouldSwap = true; event.detail.isError = false; event.detail.target = q('#dialog-content'); }
     if (event.detail.target?.id === 'dialog-content' && event.detail.xhr.responseText.trim()) { if (event.detail.xhr.status >= 400) anchorPoint = null; }
@@ -179,9 +191,14 @@
   });
   document.addEventListener('htmx:afterRequest', event => {
     const source = event.detail.elt;
+    const healthForm = source?.closest('form[data-health-form]');
+    if (healthForm && event.detail.xhr.status === 422) {
+      const input = q('#health-current');
+      if (input) { input.value = input.dataset.savedValue; delete input.dataset.dirty; }
+    }
     if (event.detail.successful && event.detail.xhr.status >= 200 && event.detail.xhr.status < 300 && source?.id !== 'poller') {
       const form = source?.closest('form');
-      if (form?.matches('[data-health-form]')) { const input = q('#health-current'); if (input) delete input.dataset.dirty; }
+      if (form?.matches('[data-health-form]')) { const input = q('#health-current'); if (input) { input.dataset.savedValue = input.value; delete input.dataset.dirty; } }
       if (form?.matches('[data-chat-form]')) { const text = q('[name=text]',form); if (text) text.value = ''; }
       const key = form && q('[name=request_id]',form); if (key) { key.value = crypto.randomUUID(); delete key.dataset.operationKey; }
       refresh();

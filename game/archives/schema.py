@@ -27,7 +27,7 @@ CHARACTER = {
     **dict.fromkeys(('health_current','health_max','speed','armor_class','proficiency_bonus','spell_save_dc','spell_attack_bonus'),INTEGER),
     **dict.fromkeys(('can_cast','can_rage','can_wildshape'), {'type':'boolean'}),
     'spellcasting_ability': STRING,
-    'resources': array(object_schema({'kind': STRING,'level':INTEGER,'current':INTEGER,'maximum':INTEGER})),
+    'resources': dict(array(object_schema({'kind': STRING,'level':INTEGER,'current':INTEGER,'maximum':INTEGER})),minItems=9,maxItems=9),
     'inventory': array(object_schema({'item':ID,'quantity':dict(INTEGER, minimum=1)})),
     'actions': dict(array(ID),uniqueItems=True),
 }

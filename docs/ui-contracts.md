@@ -48,3 +48,11 @@ Master panel wrappers (GridStack nodes) and all filters remain untouched by poll
 Chat send fields: `text`, master `recipient_id`, player `character_id`. Catalog send checkbox field `recipients` repeated. Health field `health_current`. Inventory remove field `quantity`. Wipe field `categories` repeated, values `events`, `items`, `actions`, `characters`; starts entirely unchecked.
 
 Capability blocks keep their inputs mounted; hidden inputs are disabled to avoid irrelevant browser validation, and re-enabled on toggling the capability on. Poll skips player-summary while health is focused/dirty and skips any target containing an open local dialog; it catches up on the next poll after completion/close.
+
+## Review round 1 refinements
+
+Character action selection combines the text input with activation and resource selectors (`data-filter=action-choices`). Rows carry activation_key and resource_key; slot keys are spell_slot_1 through spell_slot_7, and each row shows its required slot level. Filters only change hidden and keep all checkbox inputs/values mounted.
+
+Chat-read requests send URL-encoded `through_id` equal to the maximum rendered data-message-id, or 0 for an empty history. The backend must not mark later, unseen messages as read.
+
+Health form uses novalidate so negative/empty blur submissions reach the server's Russian validation result. A 422 opens the centered result dialog, restores the input's last confirmed data-saved-value, and clears its dirty flag without applying the invalid value. Successful responses update the confirmed value; focus returns to the health input after closing the result.

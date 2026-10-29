@@ -106,9 +106,27 @@
 <label class="sr-only" for="action-choose-filter">Найти действие
 </label>
 <input id="action-choose-filter" type="search" placeholder="Поиск действий и заклинаний…" data-filter="action-choices">
+<div class="form-grid action-filters">
+<div class="field"><label for="action-activation-filter">Тип действия</label>
+<select id="action-activation-filter" data-filter="action-choices" data-filter-key="activation">
+<option value="">Все типы</option><option value="action">Действие</option><option value="bonus">Бонусное действие</option><option value="reaction">Реакция</option>
+</select></div>
+<div class="field"><label for="action-resource-filter">Требуемый ресурс</label>
+<select id="action-resource-filter" data-filter="action-choices" data-filter-key="resource">
+<option value="">Все ресурсы</option><option value="none">Без ресурса</option>
+<option value="spell_slot_1">Ячейка заклинания · 1 уровень</option>
+<option value="spell_slot_2">Ячейка заклинания · 2 уровень</option>
+<option value="spell_slot_3">Ячейка заклинания · 3 уровень</option>
+<option value="spell_slot_4">Ячейка заклинания · 4 уровень</option>
+<option value="spell_slot_5">Ячейка заклинания · 5 уровень</option>
+<option value="spell_slot_6">Ячейка заклинания · 6 уровень</option>
+<option value="spell_slot_7">Ячейка заклинания · 7 уровень</option>
+<option value="rage">Ярость</option><option value="wildshape">Дикий облик</option>
+</select></div>
+</div>
 <div id="action-choices" class="catalog-choices">{% for row in form.action_rows %}
-<div class="choice-row" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
-<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>{{ row.activation }} · {{ row.resource }}</small>
+<div class="choice-row" data-activation="{{ row.activation_key }}" data-resource="{{ row.resource_key }}{% if row.resource_key == 'spell_slot' %}_{{ row.slot_level }}{% endif %}" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
+<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>{{ row.activation }} · {{ row.resource }}{% if row.slot_level %} · {{ row.slot_level }} уровень{% endif %}</small>
 </label>{{ row.field }}{{ row.field.errors }}
 </div>{% empty %}
 <p class="help">Сначала создайте действия и заклинания в каталоге мастера.

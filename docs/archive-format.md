@@ -14,8 +14,11 @@ contain all exported fields listed by `CHARACTER` in the schema: statistics,
 five weapons, portrait, resources, inventory quantities and action membership.
 Inventory item IDs and action IDs must resolve inside the same archive.
 Duplicate resources, IDs and memberships (including normalized-name aliases)
-are rejected. Resource levels and model domain constraints are validated before
-staging. Optional portrait and non-spell action slot level use JSON null.
+are rejected. Each character requires exactly nine resources: spell slots 1–7,
+rage/0 and wildshape/0. Resource levels and model domain constraints are validated
+before staging. Exports fill absent legacy/raw-created resource rows with zero
+current/maximum in the DTO without modifying the database, so their own archives
+remain importable. Optional portrait and non-spell action slot level use JSON null.
 Icons and portraits reference root PNG filenames.
 
 Archives exclude revision/timestamp/search metadata, active flags, invitations,
@@ -77,7 +80,16 @@ transaction held while the user reviews a preview.
 
 Run `python manage.py cleanup_imports` hourly. It write-locks each job older
 than 24 hours, rechecks its timestamp and removes abandoned review/staged or
-terminal staging directories. Fresh and committing jobs are protected; commit's
+terminal staging directories. Staging holds an OS file-lock execution claim in
+`.execution.lock` throughout validation and review publication, without a long
+database transaction. Cleanup takes this claim nonblockingly and skips a live
+worker even if suspended past 24 hours. Process exit releases the kernel lock;
+the leftover file does not protect an abandoned job. Publication reloads and
+locks the job, checks it is still staged, and cannot resurrect cancelled work.
+Fresh and committing jobs are protected; commit's
 `committing` status is inside the atomic transaction and normally cannot remain
 after a process crash. Directory metadata is revalidated against the exact job
 UUID and resolved import root before deletion; tampered paths are refused.
+Before terminal transitions or stale-preview replacement, cleanup candidates
+include all asset IDs/digests/paths referenced by either payload or preview.
+Post-commit media release retains files used by current rows or other live jobs.
