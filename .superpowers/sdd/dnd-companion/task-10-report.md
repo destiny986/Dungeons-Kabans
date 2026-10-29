@@ -92,3 +92,80 @@ on disk for diagnostics; no automatic retention/data pruning has been added.
 
 Commit SHA is supplied in the task handoff after committing this report and owned
 files together.
+
+## Fix round 1 — access-log credentials and hourly cleanup (2026-10-30)
+
+Read and verified task-10-review.md against the invitation route and access
+contract. The review's Important finding was confirmed: the image's original
+Gunicorn access-log argument and inherited nginx access log recorded complete
+request lines. Fixed both production access streams explicitly: Gunicorn now uses
+`--access-logfile /dev/null`; the dedicated nginx vhost now uses `access_log off`.
+Successful requests, invalid invitations, queries and Referer values therefore
+cannot enter either access stream. Kept useful Gunicorn/application/nginx error
+logging per coordinator instruction, with upstream-error suppression scoped only
+to the credential-bearing nginx `/join/` location. Error logs still require care
+when sharing other diagnostic context. An existing dedicated nginx
+site must receive the reviewed operator-installed update before release is safe;
+the release script still refuses silently replacing changed site content.
+
+Added meaningful live verification rather than source-string assertions:
+
+- A POSIX pytest launches the Dockerfile's real Gunicorn command, substituting only
+  its WSGI fixture and ephemeral bind address, sends successful and unsuccessful
+  invitation-shaped requests with a known marker in URI/query/Referer, and checks
+  both captured output streams. It is explicitly skipped on Windows: importing
+  Gunicorn there fails because `fcntl` is unavailable. No claim is made that this
+  new test ran locally or that its red/green behavior was demonstrated locally.
+- The existing isolated Docker smoke now adds a disposable nginx proxy using the
+  actual vhost configuration with only test cert and isolated upstream addresses
+  substituted. An opt-in CI-only probe creates a real character/invitation and
+  checks actual valid 302, invalid 404 and health 200 responses with marker
+  query/Referer values. Both application and proxy Docker logs are captured
+  privately and searched for the real token and marker. Probe tokens and unsafe
+  logs are withheld even on failure. The nginx test certificate is self-signed;
+  insecure TLS is restricted to this disposable isolated proxy and does not change
+  production health checks. This end-to-end Docker check remains unrun locally
+  because Docker is unavailable and no workflow was executed. The smoke also stops
+  only its test app, verifies nginx returns 502 for a marked invitation path, and
+  checks that this upstream failure does not put the marker in proxy output.
+
+Aligned cleanup guidance to hourly runs with a 24-hour age cutoff. Added concrete
+systemd oneshot/timer files and operator installation, verification, enable and
+journal commands. The service uses `config/current`, the same host release lock,
+and `cleanup_imports`; it does not pull, migrate, restart, back up or restore.
+The timer is hourly with <=5-minute jitter and downtime catch-up. No timer was
+installed or started. systemd verification requires the eventual Linux host and
+was not fabricated on this Windows workstation.
+
+The coordinator explicitly extended ownership to `game/logging.py`,
+`game/test_logging.py` and a minimal `config/settings.py` LOGGING hook. Added a
+central filter that renders msg/args before replacing invitation paths, plus a
+formatter that sanitizes the final exception/traceback text. Django request and
+dev-server logs keep warning/error levels, response statuses, useful messages and
+tracebacks; non-invitation logs are unchanged and request paths are never mutated.
+Three new tests were observed failing first (missing filter module, real invalid
+404 absent from the safe output, dev-server marker leaked), then passing: real
+invalid invitation request through the configured Django handler, interpolated
+dev-server request record, and exception/context preservation with no credential.
+
+Fresh focused verification: 12 passed / 1 explicit POSIX-only skip in 3.12s.
+Production check: no issues, 1 intentional HSTS check silenced. Probe Python
+compilation passed. Self-review caught that `bash -n file1 file2 ...` only parses
+the first file: corrected CI to loop over each shell script and locally reran the
+same per-file loop successfully. Other agents are changing shared app files, so
+the coordinator retains the stable integrated full-suite gate.
+
+After the logging extension landed, a fresh full-suite run completed with
+144 passed, 2 skipped and 30 subtests passed in 24.49s. The one warning is the
+intentional duplicate ZIP member fixture in
+`ArchiveTests::test_duplicate_zip_symlink_and_expanded_limit`. The two skips are
+the existing Windows symlink privilege case and the new POSIX Gunicorn test.
+Production check again reported no issues (1 intentional HSTS check silenced).
+Per-file Bash syntax and Python compilation of the logging/probe modules passed.
+Actual Docker/nginx/container smoke, Linux systemd unit verification and external
+deployment checks remain unrun, as already explained above.
+
+No server connection, workflow execution, push, automatic backup, rollback or
+persistent data deletion occurred. Commit is limited to owned delivery files and
+this report plus the explicitly authorized central logging extension; unrelated
+shared app edits remain untouched.

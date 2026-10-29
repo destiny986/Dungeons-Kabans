@@ -1,0 +1,14 @@
+[Unit]
+Description=Remove abandoned Dungeons Kabans imports older than 24 hours
+Requires=docker.service
+After=docker.service
+ConditionPathExists=/srv/dungeons-kabans/config/current/image.env
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/srv/dungeons-kabans/config/current
+# The same host lock prevents overlap with a migration or another cleanup run.
+ExecStart=/usr/bin/flock -x /srv/dungeons-kabans/release.lock /usr/bin/docker compose --project-name dungeons-kabans --env-file image.env -f compose.production.yaml run --rm --no-deps app python manage.py cleanup_imports
+TimeoutStartSec=15min
+UMask=0077

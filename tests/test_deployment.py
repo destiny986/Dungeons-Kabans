@@ -5,6 +5,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import socket
+import time
+import http.client
 
 import pytest
 
@@ -87,3 +90,45 @@ def test_release_orders_single_phase_and_stops_without_destructive_recovery(tmp_
         assert sum(" manage.py bootstrap_master" in op for op in operations) == 1
     if failure == "migrate":
         assert not any("bootstrap_master" in op for op in operations)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Gunicorn requires POSIX fcntl")
+def test_image_gunicorn_command_never_logs_invitation_request_components(tmp_path):
+    """Run the image's real command, replacing only its WSGI target/bind address."""
+    command = json.loads(next(line[4:] for line in (ROOT / "Dockerfile").read_text().splitlines()
+                              if line.startswith("CMD ")))
+    command[0:1] = [sys.executable, "-m", "gunicorn"]
+    command[command.index("config.wsgi:application")] = "fixture_wsgi:application"
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+    command[command.index("--bind") + 1] = f"127.0.0.1:{port}"
+    (tmp_path / "fixture_wsgi.py").write_text(
+        "def application(environ, start_response):\n"
+        " status = '404 Not Found' if 'invalid' in environ['PATH_INFO'] else '302 Found'\n"
+        " start_response(status, [('Content-Length', '0')]); return [b'']\n")
+    process = subprocess.Popen(command, cwd=tmp_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    marker = "KNOWN-INVITATION-CREDENTIAL-DO-NOT-LOG"
+    try:
+        for _ in range(100):
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=.1):
+                    break
+            except OSError:
+                if process.poll() is not None:
+                    pytest.fail("Gunicorn exited before accepting test requests")
+                time.sleep(.05)
+        else:
+            pytest.fail("Gunicorn did not start")
+        for kind, expected in (("valid", 302), ("invalid", 404)):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+            connection.request("GET", f"/join/{marker}-{kind}/?credential={marker}",
+                               headers={"Referer": f"https://example.test/join/{marker}/"})
+            response = connection.getresponse()
+            assert response.status == expected
+            response.read()
+            connection.close()
+    finally:
+        process.terminate()
+        stdout, stderr = process.communicate(timeout=10)
+    assert marker not in stdout + stderr

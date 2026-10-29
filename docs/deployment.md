@@ -89,6 +89,22 @@ served by WhiteNoise. Persisted PNGs need 0644 permissions and the media directo
 0755 for nginx's worker to read them; media URLs remain protected by the internal
 `/_protected_media/` nginx location. There is no public media alias.
 
+Gunicorn access entries go to `/dev/null`, and this vhost explicitly sets
+`access_log off` so the host's inherited access log cannot record reusable
+`/join/<token>/` invitation URLs. Request paths, query strings and Referer values
+are omitted from both access streams for successful and unsuccessful requests.
+Application/Gunicorn error logging and ordinary nginx error logging remain
+available. The `/join/` nginx location alone suppresses upstream-error messages,
+which otherwise embed the original invitation URI. Central Django request and
+development-server handlers redact `/join/<token>` after message interpolation;
+their formatter also redacts such paths in exception text while preserving
+tracebacks and statuses. Requests and routes remain unchanged. Review error logs
+before sharing them, as other diagnostic context can still contain user data.
+Do not re-enable default access logging without credential redaction. When upgrading
+an earlier dedicated site, the operator must install the reviewed nginx change and
+validate/reload it before considering production logging safe; the release script
+deliberately refuses an unexpected site-content change.
+
 ## Local Docker bootstrap
 
 To exercise the exact image without a server or production data:
@@ -101,7 +117,15 @@ bash deploy/docker-smoke.sh dungeons-kabans:local
 The smoke test creates named temporary volumes, gives them UID 10001 ownership,
 runs migrations/bootstrap and production checks, then starts Gunicorn and verifies
 DB-backed health. It removes only its own test container/volumes afterward. It uses
-public test credentials and is separate from any deployed container. For ongoing
+public test credentials and is separate from any deployed container. It also starts
+an isolated nginx test proxy with a disposable self-signed certificate and sends a
+real valid invitation, an invalid invitation and a health request with known URI,
+query and Referer markers. It inspects both container log outputs without printing
+the credentials or potentially unsafe logs. It then stops only the temporary app
+and verifies that an invitation request producing an nginx upstream 502 also
+leaves no credential marker in proxy logs. CI's self-signed TLS bypass is confined
+to that test proxy; release health checks still require valid production TLS.
+For ongoing
 local development use the project's local Django setup; production Compose paths
 refer deliberately to the prepared host directories, not your working directory.
 
@@ -135,9 +159,28 @@ curl --fail https://185.232.205.216:9443/healthz/
 sudo docker compose --project-name dungeons-kabans --env-file image.env -f compose.production.yaml run --rm --no-deps app python manage.py cleanup_imports
 ```
 
-Schedule the cleanup command daily with the operator's scheduler if desired; it
-removes abandoned imports older than 24 hours while retaining active/referenced
-files. Review application logs for sensitive user content before sharing them.
+Install the supplied systemd service/timer after the first healthy release, from
+the reviewed checkout on the host. The timer runs hourly (up to five minutes of
+jitter), including one catch-up after downtime. Each run removes abandoned imports
+older than 24 hours while retaining active/referenced files; the cutoff is 24 hours,
+not one hour. The shared release lock prevents overlap with a migration. The service
+uses the latest healthy configuration via `config/current` and does not pull an
+image, migrate, back up or restart the application.
+
+```bash
+sudo install -m 644 deploy/dungeons-kabans-cleanup.service /etc/systemd/system/dungeons-kabans-cleanup.service
+sudo install -m 644 deploy/dungeons-kabans-cleanup.timer /etc/systemd/system/dungeons-kabans-cleanup.timer
+sudo systemd-analyze verify /etc/systemd/system/dungeons-kabans-cleanup.service /etc/systemd/system/dungeons-kabans-cleanup.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now dungeons-kabans-cleanup.timer
+sudo systemctl list-timers dungeons-kabans-cleanup.timer
+sudo journalctl -u dungeons-kabans-cleanup.service --since today
+```
+
+These are operator setup instructions; authoring the files does not install or start
+anything on the server. Run `sudo systemctl start dungeons-kabans-cleanup.service`
+for a deliberate immediate cleanup. Review application logs for sensitive user
+content before sharing them.
 Never use `docker compose down -v`, delete/reinitialize SQLite, or prune persistent
 directories to troubleshoot. No automatic backups or backup rotation are installed.
 Domain ZIP export/import is a manual transfer of domain data, not a full chat,

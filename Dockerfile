@@ -11,4 +11,5 @@ RUN DJANGO_SECRET_KEY=build-only-static-assets-not-a-runtime-secret-key-01234567
     && mkdir -p /data /media /imports && chown app:app /data /media /imports
 USER 10001:10001
 EXPOSE 8000
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "2", "--access-logfile", "-", "--error-logfile", "-"]
+# Request lines can contain reusable invitation credentials. Keep them out of logs.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "2", "--access-logfile", "/dev/null", "--error-logfile", "-"]

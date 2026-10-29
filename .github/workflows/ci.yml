@@ -33,7 +33,7 @@ jobs:
         env:
           DJANGO_ENV: production
       - name: Shell syntax
-        run: bash -n deploy/release.sh deploy/release-container.sh deploy/docker-smoke.sh
+        run: for script in deploy/*.sh; do bash -n "$script"; done
 
   docker-smoke:
     runs-on: ubuntu-24.04

@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly Dungeons Kabans abandoned import cleanup
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+Unit=dungeons-kabans-cleanup.service
+
+[Install]
+WantedBy=timers.target

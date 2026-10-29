@@ -47,6 +47,22 @@ CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get("DJANGO_CSRF
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://127.0.0.1:8000" if IS_LOCAL else "").rstrip("/")
 MASTER_PASSWORD = os.environ.get("MASTER_PASSWORD", "")
 
+# Invitation URLs are reusable credentials. Render args before redaction and also
+# sanitize formatted tracebacks; the request itself must remain unchanged.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"invitation_privacy": {"()": "game.logging.InvitationPathFilter"}},
+    "formatters": {"safe": {"()": "game.logging.InvitationPathFormatter",
+                              "format": "{levelname} {name} {message}", "style": "{"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "safe",
+                              "filters": ["invitation_privacy"]}},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
+
 # Gunicorn is reachable only through the trusted loopback reverse proxy.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
