@@ -80,12 +80,17 @@ transaction held while the user reviews a preview.
 
 Run `python manage.py cleanup_imports` hourly. It write-locks each job older
 than 24 hours, rechecks its timestamp and removes abandoned review/staged or
-terminal staging directories. Staging holds an OS file-lock execution claim in
-`.execution.lock` throughout validation and review publication, without a long
+terminal staging directories. Staging holds an OS file-lock execution claim at
+`IMPORT_ROOT/.<job UUID>.execution.lock` throughout validation and publication,
+outside the removable upload/PNG directory and without a long
 database transaction. Cleanup takes this claim nonblockingly and skips a live
 worker even if suspended past 24 hours. Process exit releases the kernel lock;
 the leftover file does not protect an abandoned job. Publication reloads and
 locks the job, checks it is still staged, and cannot resurrect cancelled work.
+Real cancellation immediately removes upload/PNG staging even while a worker
+holds the external claim. The suspended worker subsequently observes the
+cancelled status, cannot publish review, and retires its unlocked claim file.
+Unlocked terminal claims are also removed by normal/abandoned cleanup.
 Fresh and committing jobs are protected; commit's
 `committing` status is inside the atomic transaction and normally cannot remain
 after a process crash. Directory metadata is revalidated against the exact job

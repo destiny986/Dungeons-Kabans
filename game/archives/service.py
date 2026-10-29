@@ -60,6 +60,30 @@ def _remove_directory(job):
     path = _directory(job)
     if path.exists():
         shutil.rmtree(path)
+    _retire_claim(job)
+
+
+def _claim_path(job):
+    root=_directory(job).parent
+    path=root/f'.{job.id}.execution.lock'
+    if path.resolve()!=path:
+        raise ValidationError('Недопустимый путь блокировки импорта.')
+    return path
+
+
+def _retire_claim(job):
+    """Remove unlocked coordination metadata; never wait for a suspended worker."""
+    path=_claim_path(job)
+    if not path.exists(): return
+    with _execution_claim(job) as claimed:
+        if not claimed: return
+    # Only terminal/error paths call this. A live staging worker keeps its own
+    # claim until it observes cancellation and removes this metadata on exit.
+    try: path.unlink(missing_ok=True)
+    except PermissionError:
+        # Another cleanup process can briefly hold the same terminal claim.
+        # Archive/PNG removal has already completed; hourly cleanup retries it.
+        pass
 
 
 @contextmanager
@@ -69,12 +93,10 @@ def _execution_claim(job):
     This is a file lock rather than an age-based heartbeat, so a suspended live
     worker cannot lose ownership to cleanup. No database lock spans PNG decoding.
     """
-    directory=_directory(job)
-    if not directory.exists():
+    path=_claim_path(job)
+    if not path.parent.exists():
         yield True
         return
-    path=(directory/'.execution.lock').resolve()
-    if not path.is_relative_to(directory): raise ValidationError('Недопустимый каталог импорта.')
     with path.open('a+b') as stream:
         if stream.tell()==0:
             stream.write(b'0');stream.flush()

@@ -374,3 +374,43 @@ class ArchiveTests(TransactionTestCase):
         self.assertFalse(MediaAsset.objects.filter(pk=asset.pk).exists())
         self.assertFalse(media.asset_path(asset).exists())
         self.assertFalse((Path(self.tmp.name)/'imports'/str(job.pk)).exists())
+
+    def test_real_cancel_immediately_removes_png_and_zip_while_worker_claim_held(self):
+        from game.archives import service
+        char,item,action=self.domain()
+        content=export_archive()
+        loaded=threading.Event();resume=threading.Event();outcome=[]
+        original=service._load
+        def paused(upload,directory):
+            result=original(upload,directory)
+            loaded.set()
+            if not resume.wait(10):raise RuntimeError('test timeout')
+            return result
+        def worker():
+            close_old_connections()
+            try:outcome.append(create_import(io.BytesIO(content),'a'*32))
+            except Exception as exc:outcome.append(exc)
+            finally:close_old_connections()
+        with patch.object(service,'_load',side_effect=paused):
+            thread=threading.Thread(target=worker)
+            thread.start()
+            try:
+                self.assertTrue(loaded.wait(10))
+                job=ImportJob.objects.get()
+                directory=Path(self.tmp.name)/'imports'/str(job.pk)
+                self.assertTrue((directory/'upload.zip').exists())
+                self.assertTrue(list(directory.glob('*.png')))
+                cancel_import(job.pk,'a'*32)  # real service while OS claim remains held
+                self.assertFalse(directory.exists())
+                self.assertFalse(resume.is_set())
+                job.refresh_from_db();self.assertEqual(job.status,'cancelled')
+                self.assertEqual(job.payload,{})
+                self.assertTrue(media.asset_path(item.icon).exists())
+            finally:
+                resume.set();thread.join(10)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(outcome),1)
+        self.assertIsInstance(outcome[0],ValidationError)
+        job.refresh_from_db();self.assertEqual(job.status,'cancelled')
+        self.assertFalse(directory.exists())
+        self.assertFalse(list((Path(self.tmp.name)/'imports').glob('.*.execution.lock')))
