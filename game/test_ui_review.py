@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from game.models import Action, Character, CharacterGrant, ChatMessage, MediaAsset
+from game.models import Action, Character, CharacterGrant, ChatMessage, Event, MediaAsset
 from game.test_web import joined
 
 pytestmark = pytest.mark.django_db
@@ -27,6 +27,52 @@ class Controls(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         self.elements.append((tag, dict(attrs)))
+
+
+@pytest.mark.parametrize('editing', [False, True])
+def test_event_preview_keeps_full_description_out_of_compact_card(ui_master, editing):
+    event = Event.objects.create(name='Туман', description='Скрытое полное описание', color='red')
+    url = reverse('game:catalog_edit', args=['event', event.pk]) if editing else reverse('game:catalog_new', args=['event'])
+    response = ui_master.get(url)
+    assert response.status_code == 200
+    html = response.content.decode()
+    compact = html.split('data-preview-card>', 1)[1].split('<h3 class="preview-label">', 1)[0]
+    full = html.split('<article class="paper preview-full">', 1)[1].split('</article>', 1)[0]
+    assert not any(attrs.get('data-preview') == 'description' for _, attrs in Controls(compact).elements)
+    assert any(attrs.get('data-preview') == 'name' for _, attrs in Controls(compact).elements)
+    assert any(attrs.get('data-preview') == 'description' for _, attrs in Controls(full).elements)
+    if editing:
+        assert event.description not in compact
+        assert event.description in full
+
+
+def test_master_event_cards_show_only_names_and_keep_search_metadata(ui_master):
+    event = Event.objects.create(name='Появление кабана', description='Секретное описание', color='blue', tags=['Лес'])
+    for url in ('game:master', 'game:master_poll'):
+        response = ui_master.get(reverse(url))
+        html = response.content.decode()
+        card = html.split('class="event-card ', 1)[1].split('</a>', 1)[0]
+        attrs, body = card.split('>', 1)
+        assert event.name in body
+        assert event.description not in body
+        assert 'Лес' not in body
+        assert event.description in attrs  # Search by full description still works.
+        assert 'data-dialog' in attrs
+
+
+def test_master_full_event_card_is_neutral_and_keeps_all_three_controls(ui_master):
+    event = Event.objects.create(name='Кабан', description='Описание события', color='blue', tags=['Лес'])
+    html = ui_master.get(reverse('game:card', args=['event', event.pk])).content.decode()
+    elements = Controls(html).elements
+    article = next(attrs for tag, attrs in elements if tag == 'article')
+    assert 'event-blue' not in article.get('class', '').split()
+    assert event.description in html and 'Лес' in html
+    edit = next(attrs for tag, attrs in elements if tag == 'a' and attrs.get('href') == reverse('game:catalog_edit', args=['event', event.pk]))
+    send = next(attrs for tag, attrs in elements if tag == 'summary')
+    delete = next(attrs for tag, attrs in elements if tag == 'button' and attrs.get('type') == 'submit')
+    assert set(edit['class'].split()) == set(send['class'].split()) == set(delete['class'].split())
+    for operation in ('catalog_send', 'catalog_delete'):
+        assert any(tag == 'form' and attrs.get('method') == 'post' and attrs.get('action') == reverse('game:' + operation, args=['event', event.pk]) for tag, attrs in elements)
 
 
 def test_character_editor_exposes_combined_filters_and_slot_level(ui_master):

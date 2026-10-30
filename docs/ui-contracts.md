@@ -6,6 +6,8 @@ All templates live under `game/`. The stable base is `game/base.html`. All URL n
 
 Catalog form fields: `name`, `description`, `tags`, event `color`, item/action `icon` (PNG upload), action `activation`, `resource`, `slot_level`. Character base fields match model names, portrait is a PNG upload. Login field: `password` (a Django form is optional).
 
+The compact event preview and master event catalog show only the short description (`name`), using the same small rounded rectangle sized to its text; long names wrap within the available width. Master event catalog cards flow left to right and wrap automatically as the panel width changes, with 12px gaps and rows aligned to the top. Empty-list and no-search-results messages occupy the full row. The full description and tags appear in the full card. Event color applies only to compact cards; full cards and catalog form controls, including browser-autofilled fields, keep the neutral paper palette. Master event card controls share the edit button style and occupy one row: edit on the left, send in the center, delete on the right. The recipient form expands below that row without discarding selections.
+
 CharacterForm supplies these iterable helpers, with actual BoundFields (not strings):
 
 * `ability_rows`: `{label, ability, save}` (six rows).

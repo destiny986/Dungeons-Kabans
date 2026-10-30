@@ -1,0 +1,21 @@
+<details class="send-details{% if kind == 'event' %} event-send{% endif %}">
+<summary class="button{% if kind == 'event' %} secondary small{% endif %}">Отправить {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие{% endif %} игроку
+</summary>
+<form method="post" action="{% url 'game:catalog_send' kind object.pk %}" hx-post="{% url 'game:catalog_send' kind object.pk %}" hx-target="#dialog-content" data-send-form>{% csrf_token %}{% include 'game/_request_id.html' %}
+<fieldset><legend>Кому отправить?</legend>
+<div class="button-row">
+<button type="button" class="text-button" data-select-all>Выбрать всех
+</button>
+<button type="button" class="text-button" data-select-none>Снять выбор
+</button>
+</div>{% for recipient in active_characters %}
+<label class="check-row">
+<input type="checkbox" name="recipients" value="{{ recipient.pk }}">{{ recipient.name }}
+</label>{% empty %}
+<p class="help">В игре пока нет активных персонажей. Пригласите игроков со страницы управления персонажами.
+</p>{% endfor %}
+</fieldset>
+<button class="button" {% if not active_characters %}disabled{% endif %}>Отправить выбранным
+</button>
+</form>
+</details>

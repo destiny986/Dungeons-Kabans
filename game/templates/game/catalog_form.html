@@ -27,13 +27,13 @@
 </p>
 <h3 class="preview-label">Свернутая карточка
 </h3>
-<div class="event-card preview-compact event-{{ object.color|default:'yellow' }}" data-preview-card>
+<div class="event-card preview-compact{% if kind == 'event' %} event-compact{% endif %} event-{{ object.color|default:'yellow' }}" data-preview-card>
 <div class="preview-icon" {% if kind == 'event' %}hidden{% endif %}><img data-preview-image alt="Выбранная иконка" {% if object.icon %}src="{% url 'game:media' object.icon.digest %}"{% else %}hidden{% endif %}>
 </div>
 <h3 data-preview="name">{{ object.name|default:'Название записи' }}
 </h3>
-<p data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
-</p>
+{% if kind != 'event' %}<p data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
+</p>{% endif %}
 </div>
 <h3 class="preview-label">Полная карточка
 </h3>

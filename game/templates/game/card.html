@@ -1,4 +1,4 @@
-<article class="detail-card {% if kind == 'event' %}event-{{ object.color }}{% endif %}">
+<article class="detail-card">
 <p class="eyebrow">{% if kind == 'event' %}Событие{% elif kind == 'item' %}Предмет{% else %}Действие / заклинание{% endif %}
 </p>
 <div class="detail-title">{% if object.icon %}<img class="detail-icon" src="{% url 'game:media' object.icon.digest %}" width="64" height="64" alt="">{% endif %}
@@ -12,33 +12,14 @@
 <div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
 </div>{% if readonly %}
 <button class="button secondary" type="button" data-close>Закрыть</button>{% elif is_master %}
-<div class="card-tools"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
+<div class="card-tools{% if kind == 'event' %} event-card-tools{% endif %}"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
+{% if kind == 'event' %}{% include 'game/_catalog_send.html' %}{% endif %}
 <form action="{% url 'game:catalog_delete' kind object.pk %}" method="post" hx-post="{% url 'game:catalog_delete' kind object.pk %}" hx-target="#dialog-content" data-confirm="Удалить «{{ object.name }}» из игры и всех связанных записей?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="button danger small" type="submit">⌫ Удалить
+<button class="button {% if kind == 'event' %}secondary{% else %}danger{% endif %} small" type="submit">⌫ Удалить
 </button>
 </form>
 </div>
-<details class="send-details">
-<summary class="button">Отправить {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие{% endif %} игроку
-</summary>
-<form method="post" action="{% url 'game:catalog_send' kind object.pk %}" hx-post="{% url 'game:catalog_send' kind object.pk %}" hx-target="#dialog-content" data-send-form>{% csrf_token %}{% include 'game/_request_id.html' %}
-<fieldset><legend>Кому отправить?</legend>
-<div class="button-row">
-<button type="button" class="text-button" data-select-all>Выбрать всех
-</button>
-<button type="button" class="text-button" data-select-none>Снять выбор
-</button>
-</div>{% for recipient in active_characters %}
-<label class="check-row">
-<input type="checkbox" name="recipients" value="{{ recipient.pk }}">{{ recipient.name }}
-</label>{% empty %}
-<p class="help">В игре пока нет активных персонажей. Пригласите игроков со страницы управления персонажами.
-</p>{% endfor %}
-</fieldset>
-<button class="button" {% if not active_characters %}disabled{% endif %}>Отправить выбранным
-</button>
-</form>
-</details>{% elif character %}{% if kind == 'action' %}
+{% if kind != 'event' %}{% include 'game/_catalog_send.html' %}{% endif %}{% elif character %}{% if kind == 'action' %}
 <form action="{% url 'game:apply_action' character.pk object.pk %}" method="post" hx-post="{% url 'game:apply_action' character.pk object.pk %}" hx-target="#dialog-content">{% csrf_token %}{% include 'game/_request_id.html' %}
 <button class="button wide">Применить
 </button>

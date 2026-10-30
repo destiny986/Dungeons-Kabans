@@ -54,6 +54,8 @@ small{font-size:.8rem}
 .field>label,.field>span:first-child{display:block;font:600 12px/1.5 system-ui,sans-serif;margin:0 0 7px}
 .required{color:var(--amber)}
 input:not([type=checkbox]):not([type=radio]),select,textarea{width:100%;min-height:44px;border:1px solid #bcb199;border-radius:2px;padding:10px 12px;background:#fffcf280;color:var(--ink);line-height:1.45;box-shadow:inset 0 1px 2px #44311508}
+/* Browser autofill keeps the catalog form's paper palette. */
+.editor-form :is(input,select,textarea):autofill{box-shadow:inset 0 0 0 1000px #fcf7eb;-webkit-text-fill-color:var(--ink);caret-color:var(--ink)}
 textarea{resize:vertical;min-height:110px}
 input[type=number]{font-variant-numeric:tabular-nums}
 input[type=file]{font-size:.8rem}
@@ -85,7 +87,9 @@ input::placeholder,textarea::placeholder{color:#96917f}
 .worktable .page-heading{padding:0 12px;margin-bottom:20px}
 .grid-stack{--gs-item-margin:9px}
 .grid-stack>.grid-stack-item>.grid-stack-item-content{inset:9px}
-.panel{height:100%;display:flex;flex-direction:column;border-radius:2px}
+/* Keep the grip inside its hit area, with the arrow ending at the panel corner. */
+.grid-stack-item>.ui-resizable-se{transform:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="%23666" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 20 20"><path d="M7 11V7h4M7 7l10 10m-4 0h4v-4"/></svg>')}
+.panel{display:flex;flex-direction:column;border-radius:2px}
 .panel:after{content:"";position:absolute;inset:3px;border:1px solid #d5c9ae66;pointer-events:none}
 .panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;padding:15px 18px;border-bottom:1px solid #d8cdb5;cursor:grab;min-height:65px}
 .panel-heading h2{font-size:1.1rem;margin:0}
@@ -107,7 +111,9 @@ input::placeholder,textarea::placeholder{color:#96917f}
 .player-mini p{font:11px system-ui,sans-serif;color:var(--muted);margin:0 0 5px}
 .health-text{font-size:.9rem;color:#8a4b3b;font-variant-numeric:tabular-nums}
 .health-text span{color:#8b8270}
-.event-list{display:flex;flex-direction:column;gap:12px}
+.event-list{display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;align-content:flex-start;gap:12px}
+.event-list>.event-card{flex:0 0 auto;min-width:0}
+.event-list>.empty-state,.event-list>.no-filter-results{flex:0 0 100%;min-width:0}
 .event-card{position:relative;display:block;text-decoration:none;color:var(--ink);background:#ece3c3;border:1px solid #cdbf8c;border-left:3px solid #af9b4e;padding:13px 15px;box-shadow:1px 2px 4px #4d3a2010;border-radius:1px;overflow-wrap:anywhere}
 .event-card:before{content:"";position:absolute;inset:3px;border:1px solid #ffffff36;pointer-events:none}
 .event-card:hover{filter:brightness(1.025);color:var(--ink)}
@@ -193,6 +199,24 @@ legend{font-weight:bold;margin-bottom:10px}
 .preview-full p{font-size:.9rem;white-space:pre-wrap}
 .preview-icon img{width:64px;height:64px;object-fit:cover;margin-bottom:12px;border:1px solid #a99b7b;padding:2px}
 .preview-compact{min-height:110px}
+.event-card.event-compact{display:inline-block;width:fit-content;max-width:100%;min-height:0;align-self:flex-start;padding:9px 13px;border-radius:12px;vertical-align:top}
+.event-compact:before{border-radius:9px}
+.event-compact h3{font-size:.9rem;line-height:1.35;margin:0}
+.event-card-tools{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch;gap:10px}
+.event-card-tools>a{grid-column:1;grid-row:1}
+.event-card-tools>form{grid-column:3;grid-row:1;margin:0}
+.event-card-tools>form>.button{height:100%}
+.event-card-tools .event-send,.event-send::details-content{display:contents}
+.event-send>summary{grid-column:2;grid-row:1;justify-self:center;text-align:center;min-width:0;width:100%;max-width:fit-content;overflow-wrap:anywhere}
+.event-send[open]>summary{margin-bottom:0}
+.event-send>form{grid-column:1/-1;grid-row:2;margin:8px 0 0}
+.event-send:not([open])>form{display:none}
+.event-card-tools .button.small{padding:7px 8px}
+@media(max-width:600px){
+.event-card-tools{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,.8fr);gap:6px}
+.event-card-tools .button.small{font-size:10px;padding:7px 5px;overflow-wrap:anywhere;min-width:0;text-align:center}
+.event-card-tools>form>.button{width:100%}
+}
 .upload-current{display:block;object-fit:cover;border:1px solid var(--line);padding:3px;margin:-8px 0 20px}
 .character-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:25px}
 .character-card{padding:26px}

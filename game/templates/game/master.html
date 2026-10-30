@@ -7,7 +7,7 @@
 </p>
 <h1>Стол мастера
 </h1>
-</div><span class="connection"><i></i> Живая игра <span id="connection-status" class="sr-only">Обновление каждые 5 секунд</span></span>
+</div><span id="connection-status" class="sr-only">Обновление каждые 5 секунд</span>
 </div>
 <div id="poller" hx-get="{% url 'game:master_poll' %}" hx-trigger="every 5s [document.visibilityState === 'visible'], refresh" hx-swap="none" hx-include="[data-poll-include]" aria-hidden="true">
 </div>
