@@ -32,6 +32,12 @@ jobs:
       - run: python manage.py check --deploy --fail-level WARNING
         env:
           DJANGO_ENV: production
+      - name: JavaScript syntax and import bulk choices
+        shell: bash
+        run: |
+          command -v node >/dev/null 2>&1 || { echo "::error::Node.js is required for CI JavaScript checks; it is not an application runtime dependency."; exit 1; }
+          node --check game/static/game/app.js
+          node tests/import_bulk.test.cjs
       - name: Shell syntax
         run: for script in deploy/*.sh; do bash -n "$script"; done
 

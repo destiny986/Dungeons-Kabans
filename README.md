@@ -77,10 +77,15 @@ PUBLIC_BASE_URL; производственная конфигурация оп�
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe manage.py check
 .\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+node --check game/static/game/app.js
+node tests/import_bulk.test.cjs
 ```
 
 Тесты используют отдельную базу и временные каталоги изображений.
 Проверка конкурентного списания использует настоящую файловую SQLite.
+Для проверок JavaScript нужен Node.js в PATH; запуск приложения и образ Docker
+его не требуют. CI выполняет эти команды после проверок Python и явно сообщает,
+если Node.js недоступен.
 
 ## Доставка
 
