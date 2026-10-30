@@ -53,3 +53,12 @@ Client/service flows, uploads and archives, including role separation, CSRF,
 private messages, stale forms/imports, OOB fragments, card authorization,
 request IDs, higher-slot consent, quantity removal, read/revoke, empty wipe,
 resource caps and template reverse-name coverage. No final mocks or skips.
+
+Successful HTMX apply-action responses retain a centered `confirmation` dialog
+with an explicit success heading and the consumed resource icon/label. The
+resource kind and actual used spell level come from the persisted service result,
+so higher-slot confirmation reports the level actually spent and idempotent
+replays return the same acknowledgement. The response triggers refresh without
+closeDialog; other successful operations retain refresh/closeDialog behavior.
+Plain form action fallback retains its player-page redirect. Existing app.js
+centers confirmation fragments and refreshes the player OOB state; no JS change.

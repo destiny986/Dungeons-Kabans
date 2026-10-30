@@ -1,10 +1,13 @@
 <section class="confirmation" data-result="{{ result.status }}">
 <p class="eyebrow">{% if result.offered_level %}Выбор ячейки{% elif result.status == 'error' or result.status == 'unavailable' %}Не удалось выполнить{% else %}Ход приключения{% endif %}
 </p>
-<h2>{% if result.offered_level %}Использовать ячейку выше?{% elif result.status == 'error' or result.status == 'unavailable' %}Действие не выполнено{% else %}{{ result.title|default:'Результат действия' }}{% endif %}
+<h2>{% if result.status == 'ok' and action %}Успешно применено{% elif result.offered_level %}Использовать ячейку выше?{% elif result.status == 'error' or result.status == 'unavailable' %}Действие не выполнено{% else %}{{ result.title|default:'Результат действия' }}{% endif %}
 </h2>
 <p>{{ result.message }}
-</p>{% if result.offered_level %}
+</p>{% if result.status == 'ok' and action %}
+<p>{{ action.name }}</p>{% if result.resource %}
+<div class="resource-pips"><i class="pip pip-{{ result.resource }}" aria-hidden="true"></i></div>
+<p>{% if result.resource == 'spell_slot' %}Ячейка заклинания {{ result.used_level }} уровня потрачена.{% elif result.resource == 'rage' %}Ячейка ярости потрачена.{% elif result.resource == 'wildshape' %}Ячейка дикого облика потрачена.{% endif %}</p>{% endif %}{% endif %}{% if result.offered_level %}
 <p>Требуется ячейка <strong>{{ result.required_level }}</strong> уровня. Доступна ячейка <strong>{{ result.offered_level }}</strong> уровня.
 </p>
 <p class="help">Она будет потрачена только после подтверждения.

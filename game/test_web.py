@@ -222,3 +222,52 @@ def test_player_groups_all_spell_levels_in_one_section():
             'Действие', 'Бонусное действие', 'Реакция', 'Заклинания', 'Ярость', 'Дикий облик']
         assert [(row['kind'], row['level']) for row in response.context['resources']] == [
             ('spell_slot', 1), ('spell_slot', 5), ('rage', 0), ('wildshape', 0)]
+
+@pytest.mark.parametrize('resource,required_level,available_level,expected_notice', [
+    ('spell_slot', 2, 2, 'Ячейка заклинания 2 уровня потрачена.'),
+    ('spell_slot', 2, 4, 'Ячейка заклинания 4 уровня потрачена.'),
+    ('rage', None, 0, 'Ячейка ярости потрачена.'),
+    ('wildshape', None, 0, 'Ячейка дикого облика потрачена.'),
+    ('none', None, None, None),
+])
+def test_apply_success_shows_centered_actual_resource_notice(resource, required_level, available_level, expected_notice):
+    import json
+    from game.models import Action, CharacterAction, CharacterResource, MediaAsset
+    hero = Character.objects.create(name='Notice hero', character_class='Mage',
+                                    can_cast=True, can_rage=True, can_wildshape=True)
+    player = joined(hero)
+    icon = MediaAsset.objects.create(digest='1'*64, path='1'*64+'.png', width=256, height=256)
+    action = Action.objects.create(name='Notice action', description='Details', icon=icon,
+                                   resource=resource, slot_level=required_level)
+    CharacterAction.objects.create(character=hero, action=action)
+    stock = None
+    if resource != 'none':
+        stock = CharacterResource.objects.create(character=hero, kind=resource,
+                                                  level=available_level, current=1, maximum=1)
+    key = uuid.uuid4()
+    url = reverse('game:apply_action', args=[hero.pk, action.pk])
+    payload = {'request_id': key}
+    if resource == 'spell_slot' and available_level > required_level:
+        offer = player.post(url, payload, HTTP_HX_REQUEST='true')
+        assert offer.status_code == 409
+        payload.update(confirmed_level=available_level, proposal=offer.context['result']['proposal'])
+    response = player.post(url, payload, HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+    assert 'Успешно применено' in response.content.decode()
+    assert b'class="confirmation"' in response.content
+    assert json.loads(response['HX-Trigger']) == {'refresh': True}
+    assert b'data-close' in response.content
+    if expected_notice:
+        assert expected_notice in response.content.decode()
+        assert f'pip-{resource}' in response.content.decode()
+        assert response.context['result']['used_level'] == available_level
+        stock.refresh_from_db(); assert stock.current == 0
+    else:
+        assert 'потрачена' not in response.content.decode()
+    assert ChatMessage.objects.filter(kind='action_use').count() == 1
+    # Retry keeps the acknowledgement and replays the completed operation.
+    replay = player.post(url, payload, HTTP_HX_REQUEST='true')
+    assert replay.status_code == 200 and replay.content == response.content
+    assert ChatMessage.objects.filter(kind='action_use').count() == 1
+    if stock:
+        stock.refresh_from_db(); assert stock.current == 0

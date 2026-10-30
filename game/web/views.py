@@ -198,6 +198,10 @@ def operation(request,callback,*,character=None,action=None):
         result = {'status':'error','message':' '.join(exc.messages)}
     status = {'error':422,'stale':409,'offer':409}.get(result.get('status'),200)
     if result.get('status') == 'ok':
+        if action is not None and request.headers.get('HX-Request','').lower() == 'true':
+            response = render(request,'game/operation_result.html',context(result=result,character=character,action=action))
+            response['HX-Trigger'] = '{"refresh":true}'
+            return response
         return success(request,'game:player',pk=character.pk) if character else success(request)
     return render(request,'game/operation_result.html',context(result=result,character=character,action=action,request_id=key),status=status)
 
