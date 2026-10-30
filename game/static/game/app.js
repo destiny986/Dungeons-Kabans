@@ -121,6 +121,13 @@
     const card = event.target.closest('[data-dialog]');
     if (card) { focusReturn = card; anchorPoint = {x:event.clientX || card.getBoundingClientRect().left, y:event.clientY || card.getBoundingClientRect().top}; }
     const tab = event.target.closest('[data-tab]'); if (tab) activateTab(tab.dataset.tab);
+    const bulk = event.target.closest('[data-import-bulk]');
+    if (bulk) qa('.conflict', bulk.closest('form')).forEach(group => {
+      const choices = qa('input[type=radio]', group);
+      const value = bulk.dataset.importBulk === 'keep' ? 'existing' : null;
+      const selected = choices.find(input => value ? input.value === value : input.value.startsWith('incoming_')) || choices[0];
+      if (selected) selected.checked = true;
+    });
     const all = event.target.closest('[data-select-all],[data-select-none]'); if (all) qa('input[name=recipients]', all.closest('form')).forEach(input => { input.checked = all.hasAttribute('data-select-all'); });
     const quantity = event.target.closest('[data-quantity-all]'); if (quantity) { q('[name=quantity]', quantity.closest('form')).value = quantity.dataset.quantityAll; notify('Выбраны все предметы. Нажмите «Удалить» для подтверждения.'); }
     const copy = event.target.closest('[data-copy]'); if (copy) { const input = document.getElementById(copy.dataset.copy); if (input) { input.select(); if (navigator.clipboard?.writeText) navigator.clipboard.writeText(input.value).then(() => notify('Ссылка скопирована')).catch(() => notify('Выделите и скопируйте ссылку')); else { document.execCommand('copy'); notify('Ссылка скопирована'); } } }

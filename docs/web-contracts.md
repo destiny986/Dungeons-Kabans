@@ -13,6 +13,9 @@ capabilities inside their transactions. Ordinary denials redirect to index;
 HTMX denials retain the access module's HX-Redirect response.
 
 The `card(kind,pk)` endpoint defaults to master controls. An explicit
+`?preview=1` requires master access and renders a read-only full card, without
+send/edit/delete/apply/remove controls. Existing character-grant checks still
+apply if a `character` query is also supplied. An explicit
 `?character=<UUID>` always requires that browser's own grant and renders player
 controls, even in a mixed-role browser. Item/action cards require ownership or a
 received live chat reference; events require a received reference. Invalid kinds,

@@ -229,6 +229,7 @@ legend{font-weight:bold;margin-bottom:10px}
 .choice-row{display:flex;align-items:center;gap:14px;border-bottom:1px solid #ddd0b5;padding:12px 0}
 .choice-row img{object-fit:cover;padding:2px;border:1px solid #b4a789}
 .choice-row label{font-size:.9rem;flex:1;cursor:pointer}
+.choice-row>div{font-size:.9rem;flex:1;min-width:0}
 .choice-row small{display:block;font:10px/1.5 system-ui,sans-serif;color:var(--muted);margin-top:4px}
 .choice-row input[type=number]{width:80px}
 .choice-row input[type=checkbox]{margin-right:10px}

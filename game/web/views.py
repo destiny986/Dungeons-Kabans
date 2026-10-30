@@ -148,6 +148,9 @@ def character_delete(request,pk):
 
 @require_GET
 def card(request,kind,pk):
+    readonly = request.GET.get('preview') == '1'
+    if readonly and not has_master_access(request):
+        return access_denied(request)
     if kind == 'character':
         if not has_master_access(request):
             return access_denied(request)
@@ -174,7 +177,7 @@ def card(request,kind,pk):
             quantity = entry.quantity if entry else 0
     elif not has_master_access(request):
         return access_denied(request)
-    return render(request,'game/card.html',context(kind=kind,object=obj,is_master=character is None,character=character,quantity=quantity,active_characters=Character.objects.filter(is_active=True).order_by('name')))
+    return render(request,'game/card.html',context(kind=kind,object=obj,is_master=character is None,readonly=readonly,character=character,quantity=quantity,active_characters=Character.objects.filter(is_active=True).order_by('name')))
 
 
 def request_key(request):

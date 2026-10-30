@@ -125,9 +125,9 @@
 </select></div>
 </div>
 <div id="action-choices" class="catalog-choices">{% for row in form.action_rows %}
-<div class="choice-row" data-activation="{{ row.activation_key }}" data-resource="{{ row.resource_key }}{% if row.resource_key == 'spell_slot' %}_{{ row.slot_level }}{% endif %}" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
-<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>{{ row.activation }} · {{ row.resource }}{% if row.slot_level %} · {{ row.slot_level }} уровень{% endif %}</small>
-</label>{{ row.field }}{{ row.field.errors }}
+<div class="choice-row" data-activation="{{ row.activation_key }}" data-resource="{{ row.resource_key }}{% if row.resource_key == 'spell_slot' %}_{{ row.slot_level }}{% endif %}" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<a href="{% url 'game:card' 'action' row.pk %}?preview=1" hx-get="{% url 'game:card' 'action' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog aria-label="Открыть карточку: {{ row.label }}"><img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48"></a>{% endif %}
+<div><a href="{% url 'game:card' 'action' row.pk %}?preview=1" hx-get="{% url 'game:card' 'action' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog>{{ row.label }}</a><small>{{ row.activation }} · {{ row.resource }}{% if row.slot_level %} · {{ row.slot_level }} уровень{% endif %}</small>
+</div><label class="sr-only" for="{{ row.field.id_for_label }}">Выбрать действие: {{ row.label }}</label>{{ row.field }}{{ row.field.errors }}
 </div>{% empty %}
 <p class="help">Сначала создайте действия и заклинания в каталоге мастера.
 </p>{% endfor %}
@@ -140,9 +140,9 @@
 </label>
 <input id="item-choose-filter" type="search" placeholder="Поиск предметов…" data-filter="item-choices">
 <div id="item-choices" class="catalog-choices">{% for row in form.item_rows %}
-<div class="choice-row" data-search="{{ row.search_text }} {{ row.label }}">{% if row.icon %}<img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48">{% endif %}
-<label for="{{ row.field.id_for_label }}">{{ row.label }}<small>Количество · 0, если нет в рюкзаке</small>
-</label>{{ row.field }}{{ row.field.errors }}
+<div class="choice-row" data-search="{{ row.search_text }} {{ row.label }}">{% if row.icon %}<a href="{% url 'game:card' 'item' row.pk %}?preview=1" hx-get="{% url 'game:card' 'item' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog aria-label="Открыть карточку: {{ row.label }}"><img src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48"></a>{% endif %}
+<div><a href="{% url 'game:card' 'item' row.pk %}?preview=1" hx-get="{% url 'game:card' 'item' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog>{{ row.label }}</a><small>Количество · 0, если нет в рюкзаке</small>
+</div><label class="sr-only" for="{{ row.field.id_for_label }}">Количество предмета: {{ row.label }}</label>{{ row.field }}{{ row.field.errors }}
 </div>{% empty %}
 <p class="help">Сначала создайте предметы в каталоге мастера.
 </p>{% endfor %}

@@ -12,8 +12,8 @@ CharacterForm supplies these iterable helpers, with actual BoundFields (not stri
 * `skill_rows`: `{label, field}`.
 * `slot_rows`: `{label, current, maximum}` (seven rows; Roman labels I–VII).
 * `weapon_rows`: `{label, name, attack, damage}` (five rows).
-* `item_rows`: `{label, field, icon}` where field is quantity and icon is optional MediaAsset.
-* `action_rows`: `{label, field, icon, activation, resource}` where field is bool; activation/resource are display strings, optional.
+* `item_rows`: `{pk, label, field, icon}` where field is quantity and icon is optional MediaAsset.
+* `action_rows`: `{pk, label, field, icon, activation, resource}` where field is bool; activation/resource are display strings, optional.
 
 Dynamic canonical field names are those in the brief. `rage_current`, `rage_maximum`, `wildshape_current`, `wildshape_maximum` are rendered directly. All BoundField errors render beside the field. Non-field errors render at top. Helpers must retain bound input values on invalid POST.
 
@@ -44,6 +44,10 @@ Master panel wrappers (GridStack nodes) and all filters remain untouched by poll
 ## Client behavior
 
 `app.js` initializes GridStack 14 only on master, persists geometry by stable panel ids in localStorage; CSS stacks mobile. Native dialogs clamp near the triggering card, confirmations center. Escape/backdrop and explicit close restore focus. Catalog/character previews update in place; file uploads use temporary local object URLs. Filters hide existing rows, never replace/discard fields. All user text is inserted with textContent. Vendor runtime assets are local (HTMX 2.0.11 / GridStack 14.0.0), no runtime CDN/build.
+
+Character editor item/action icons and names request `card?preview=1` into the shared dialog; selection/quantity fields and filters stay mounted. Master-only read-only cards show full catalog content with a close button and no mutations. Ordinary master cards retain their controls. Slot offers show the escaped action name and both required/offered levels before consent. Activity history renders `item_remove.metadata.quantity` and player `health.metadata.old/new`, including zero; master health edit text already includes its values.
+
+Import previews provide `counts={new,exact,conflict}` for normalized-name groups, classified exclusively: multiple distinct candidates are conflicts; one existing candidate is exact; one incoming candidate is new. Bulk keep selects existing or the first incoming candidate when absent. Bulk incoming selects the first displayed distinct incoming candidate. Individual radio choices can override either bulk action; server choice validation is unchanged.
 
 Chat send fields: `text`, master `recipient_id`, player `character_id`. Catalog send checkbox field `recipients` repeated. Health field `health_current`. Inventory remove field `quantity`. Wipe field `categories` repeated, values `events`, `items`, `actions`, `characters`; starts entirely unchecked.
 

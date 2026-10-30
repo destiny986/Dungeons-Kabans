@@ -10,7 +10,8 @@
 <div class="prose card-description">{{ object.description|linebreaksbr }}
 </div>
 <div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
-</div>{% if is_master %}
+</div>{% if readonly %}
+<button class="button secondary" type="button" data-close>Закрыть</button>{% elif is_master %}
 <div class="card-tools"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
 <form action="{% url 'game:catalog_delete' kind object.pk %}" method="post" hx-post="{% url 'game:catalog_delete' kind object.pk %}" hx-target="#dialog-content" data-confirm="Удалить «{{ object.name }}» из игры и всех связанных записей?">{% csrf_token %}{% include 'game/_request_id.html' %}
 <button class="button danger small" type="submit">⌫ Удалить

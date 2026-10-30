@@ -15,7 +15,7 @@ def array(items):
 
 
 def signed(keys):
-    return object_schema({key: {'type': 'integer', 'minimum': -2147483648, 'maximum': 2147483647} for key in keys})
+    return object_schema({key: {'type': 'integer'} for key in keys})
 
 
 CATALOG = {'id': ID, 'name': dict(STRING, minLength=1, maxLength=30), 'description': dict(STRING, minLength=1), 'tags': array(STRING)}

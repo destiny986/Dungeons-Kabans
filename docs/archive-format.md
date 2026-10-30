@@ -8,6 +8,10 @@ integers, never booleans or floating point numbers. Files are UTF-8 JSON. IDs
 are nonempty opaque strings of at most 128 characters, unique within each kind;
 exports use UUID strings. IDs only connect records inside this archive.
 
+Signed abilities, saves and skills accept integers without a 32-bit range bound,
+matching the JSON model/form domain. Nonnegative database integer fields retain
+their existing bounds. Files are still subject to the archive byte limits.
+
 Catalog records contain `id,name,description,tags`, with `color` for events,
 `icon` for items and `icon,activation,resource,slot_level` for actions. Characters
 contain all exported fields listed by `CHARACTER` in the schema: statistics,

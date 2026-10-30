@@ -297,8 +297,8 @@ class CharacterForm(RevisionForm):
 
     @property
     def item_rows(self):
-        return [{'label':item.name,'field':self[f'item_{item.pk}'],'icon':item.icon,'search_text':item.search_text} for item in self.items]
+        return [{'pk':item.pk,'label':item.name,'field':self[f'item_{item.pk}'],'icon':item.icon,'search_text':item.search_text} for item in self.items]
 
     @property
     def action_rows(self):
-        return [{'label':action.name,'field':self[f'action_{action.pk}'],'icon':action.icon,'activation':action.get_activation_display(),'resource':action.get_resource_display(),'activation_key':action.activation,'resource_key':action.resource,'slot_level':action.slot_level,'search_text':action.search_text} for action in self.actions]
+        return [{'pk':action.pk,'label':action.name,'field':self[f'action_{action.pk}'],'icon':action.icon,'activation':action.get_activation_display(),'resource':action.get_resource_display(),'activation_key':action.activation,'resource_key':action.resource,'slot_level':action.slot_level,'search_text':action.search_text} for action in self.actions]

@@ -282,6 +282,7 @@ def _plan(job):
     digests = {meta['filename']:digest for digest,meta in job.payload['assets'].items()}
     olddigests = {name:hashlib.sha256(content).hexdigest() for name,content in images.items()}
     groups, conflicts = [], []
+    counts = {'new':0, 'exact':0, 'conflict':0}
     for kind, rows in incoming.items():
         grouped = defaultdict(list)
         for row in rows: grouped[normalize_name(row['name'])].append(row)
@@ -300,11 +301,14 @@ def _plan(job):
             key = kind+'_'+hashlib.sha256(name.encode()).hexdigest()[:24]
             group = {'key':key,'kind':kind,'aliases':[r['id'] for r in versions], 'candidates':candidates}
             groups.append(group)
+            classification = 'conflict' if len(candidates)>1 else 'exact' if candidates[0]['value']=='existing' else 'new'
+            counts[classification] += 1
             if len(candidates)>1:
                 conflicts.append({'key':key,'kind':kind[:-1] if kind!='characters' else 'character','label':versions[0]['name'],
                                   'candidates':[{'value':c['value'],'label':'Существующая версия' if c['value']=='existing' else 'Версия из архива',
                                                  'row':c['row'],'selected':i==0} for i,c in enumerate(candidates)]})
-    return groups, {'conflicts':conflicts,'summary':f'Групп записей: {len(groups)}. Конфликтов: {len(conflicts)}.'}, _fingerprint(existing,images)
+    summary = f"Новых: {counts['new']}. Совпадающих: {counts['exact']}. Конфликтов: {counts['conflict']}."
+    return groups, {'conflicts':conflicts,'counts':counts,'summary':summary}, _fingerprint(existing,images)
 
 
 def _owned(job_id, session_key, lock=False):
