@@ -8,6 +8,7 @@ import sys
 import socket
 import time
 import http.client
+import shlex
 
 import pytest
 
@@ -132,3 +133,43 @@ def test_image_gunicorn_command_never_logs_invitation_request_components(tmp_pat
         process.terminate()
         stdout, stderr = process.communicate(timeout=10)
     assert marker not in stdout + stderr
+
+
+def test_configured_logging_probe_imports_app_from_container_workdir(tmp_path):
+    """Execute the configured invocation with isolated SQLite and only HTTP doubled.
+
+    PYTHONPATH contains the HTTP fixture alone, so it cannot accidentally provide
+    the project-root import path that the image's invocation must supply itself.
+    """
+    fixture = tmp_path / "http_fixture"
+    fixture.mkdir()
+    (fixture / "sitecustomize.py").write_text(
+        "import http.client, json, os\n"
+        "class Connection:\n"
+        " def __init__(self, *args, **kwargs): pass\n"
+        " def request(self, method, path, headers): self.path=path\n"
+        " def getresponse(self):\n"
+        "  status = 200 if self.path.startswith('/healthz/') else (404 if '-invalid/' in self.path else 302)\n"
+        "  with open(os.environ['PROBE_TRACE'], 'a') as stream: stream.write(json.dumps(status)+'\\n')\n"
+        "  return type('Response', (), {'status': status, 'read': lambda self: b''})()\n"
+        " def close(self): pass\n"
+        "http.client.HTTPSConnection=Connection\n", encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": str(fixture), "DELIVERY_LOG_PROBE": "isolated-ci-only",
+           "DJANGO_ENV": "production", "DJANGO_DEBUG": "False",
+           "DJANGO_SECRET_KEY": "isolated-probe-test-secret-0123456789-abcdefghijklmnopqrstuvwxyz",
+           "DJANGO_ALLOWED_HOSTS": "localhost", "DATA_DIR": str(tmp_path / "data"),
+           "MEDIA_ROOT": str(tmp_path / "media"), "IMPORT_ROOT": str(tmp_path / "imports"),
+           "PROBE_TRACE": str(tmp_path / "trace.jsonl")}
+    migration = subprocess.run([sys.executable, "manage.py", "migrate", "--noinput"],
+                               cwd=ROOT, env=env, capture_output=True, text=True, timeout=30)
+    assert migration.returncode == 0, migration.stderr
+    invocation = next(line.strip().split(" > ", 1)[0] for line in
+                      (ROOT / "deploy/docker-smoke.sh").read_text().splitlines()
+                      if line.strip().startswith("python ") and "logging_probe" in line)
+    command = shlex.split(invocation)
+    command[0] = sys.executable
+    result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+    credentials = json.loads(result.stdout)
+    assert len(credentials) == 2 and all(credentials)
+    assert (tmp_path / "trace.jsonl").read_text().splitlines() == ["302", "404", "200"]

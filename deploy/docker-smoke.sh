@@ -76,7 +76,7 @@ for attempt in {1..30}; do
 done
 [[ ${proxy_healthy:-false} == true ]] || { echo 'CI logging proxy failed health check.' >&2; exit 1; }
 docker exec -e DELIVERY_LOG_PROBE=isolated-ci-only "$container" \
-    python deploy/logging_probe.py > "$temporary/probe.json"
+    python -m deploy.logging_probe > "$temporary/probe.json"
 # Check that an nginx upstream error cannot log the credential-bearing URI either.
 docker stop "$container" >/dev/null
 if docker exec "$proxy" wget --no-check-certificate -O /dev/null \
