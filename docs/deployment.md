@@ -121,9 +121,18 @@ public test credentials and is separate from any deployed container. It also sta
 an isolated nginx test proxy with a disposable self-signed certificate and sends a
 real valid invitation, an invalid invitation and a health request with known URI,
 query and Referer markers. It inspects both container log outputs without printing
-the credentials or potentially unsafe logs. It then stops only the temporary app
-and verifies that an invitation request producing an nginx upstream 502 also
-leaves no credential marker in proxy logs. CI's self-signed TLS bypass is confined
+the credentials or potentially unsafe logs. It then rewrites the temporary nginx
+configuration in place (preserving its file bind mount) to use the closed loopback
+port `127.0.0.1:1`, validates it and reloads nginx. The app remains running as the
+HTTPS probe client. New connections wait up to 30 seconds for an actual HTTP 502,
+with each complete request (including DNS and TLS) limited by a Linux interval
+timer to three seconds and the remaining deadline. Other
+statuses and TLS, timeout, connection or HTTP protocol failures cannot pass the
+probe. Failure diagnostics show only the stage and status or error category,
+never request details or raw exceptions. Both container logs are checked for
+credential markers even when that probe fails, and isolated resources are removed
+on exit. Production nginx configuration is not changed by this test.
+CI's self-signed TLS bypass is confined
 to that test proxy; release health checks still require valid production TLS.
 For ongoing
 local development use the project's local Django setup; production Compose paths

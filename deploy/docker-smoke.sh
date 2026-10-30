@@ -10,14 +10,13 @@ temporary=$(mktemp -d)
 cleanup() {
     status=$?
     # Do not dump logs on failure: a logging regression could expose the probe token.
-    if (( status != 0 )); then echo 'Inspect isolated CI resources; logs withheld for credential safety.' >&2; fi
+    if (( status != 0 )); then echo 'Cleaning up isolated CI resources; raw logs withheld for credential safety.' >&2; fi
     docker rm -f "$proxy" >/dev/null 2>&1 || true
     docker rm -f "$container" >/dev/null 2>&1 || true
     docker network rm "$network" >/dev/null 2>&1 || true
     for volume in "${volumes[@]}"; do docker volume rm "$volume" >/dev/null 2>&1 || true; done
     rm -f -- "$temporary/runtime.env" "$temporary/nginx.conf" "$temporary/fullchain.pem" \
-        "$temporary/privkey.pem" "$temporary/app.log" "$temporary/proxy.log" "$temporary/probe.json" \
-        "$temporary/upstream-failure.log"
+        "$temporary/privkey.pem" "$temporary/app.log" "$temporary/proxy.log" "$temporary/probe.json"
     rmdir -- "$temporary"
     exit "$status"
 }
@@ -77,17 +76,29 @@ done
 [[ ${proxy_healthy:-false} == true ]] || { echo 'CI logging proxy failed health check.' >&2; exit 1; }
 docker exec -e DELIVERY_LOG_PROBE=isolated-ci-only "$container" \
     python -m deploy.logging_probe > "$temporary/probe.json"
-# Check that an nginx upstream error cannot log the credential-bearing URI either.
-docker stop "$container" >/dev/null
-if docker exec "$proxy" wget --no-check-certificate -O /dev/null \
-    https://127.0.0.1:9443/join/CI-INVITATION-CREDENTIAL-LOG-MARKER-invalid/ \
-    > "$temporary/upstream-failure.log" 2>&1; then
-    echo 'Expected isolated upstream failure after stopping test app.' >&2
+# Refuse the upstream connection deterministically, keeping the app as the client.
+# Preserve the inode so the file bind mount sees the updated configuration.
+python3 - "$temporary/nginx.conf" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+content = path.read_text()
+if 'http://app:8000' not in content:
+    raise SystemExit('Isolated nginx upstream configuration was not found')
+path.write_text(content.replace('http://app:8000', 'http://127.0.0.1:1'))
+PY
+if ! docker exec "$proxy" nginx -t >/dev/null 2>&1; then
+    echo 'Isolated nginx upstream configuration check failed; raw diagnostics withheld.' >&2
     exit 1
 fi
-grep -q '502' "$temporary/upstream-failure.log" || {
-    echo 'Isolated proxy did not report the expected upstream 502.' >&2; exit 1;
-}
+if ! docker exec "$proxy" nginx -s reload >/dev/null 2>&1; then
+    echo 'Isolated nginx upstream reload failed; raw diagnostics withheld.' >&2
+    exit 1
+fi
+probe_status=0
+docker exec -e DELIVERY_LOG_PROBE=isolated-ci-only "$container" \
+    python -m deploy.logging_probe --upstream-failure || probe_status=$?
 sleep 1
 docker logs "$container" > "$temporary/app.log" 2>&1
 docker logs "$proxy" > "$temporary/proxy.log" 2>&1
@@ -103,3 +114,4 @@ for name in ('app.log', 'proxy.log'):
         raise SystemExit(f'Invitation credentials appeared in {name}; logs withheld')
 print('Valid/invalid invitation URI, query and Referer absent from app/proxy logs.')
 PY
+exit "$probe_status"
