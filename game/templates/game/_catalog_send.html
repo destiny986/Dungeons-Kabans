@@ -1,5 +1,5 @@
-<details class="send-details{% if kind == 'event' %} event-send{% endif %}">
-<summary class="button{% if kind == 'event' %} secondary small{% endif %}">Отправить {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие{% endif %} игроку
+<details class="send-details catalog-send">
+<summary class="button secondary small">Отправить {% if kind == 'event' %}событие{% elif kind == 'item' %}предмет{% else %}действие{% endif %} игроку
 </summary>
 <form method="post" action="{% url 'game:catalog_send' kind object.pk %}" hx-post="{% url 'game:catalog_send' kind object.pk %}" hx-target="#dialog-content" data-send-form>{% csrf_token %}{% include 'game/_request_id.html' %}
 <fieldset><legend>Кому отправить?</legend>

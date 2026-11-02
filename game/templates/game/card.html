@@ -1,7 +1,7 @@
 <article class="detail-card">
 <p class="eyebrow">{% if kind == 'event' %}Событие{% elif kind == 'item' %}Предмет{% else %}Действие / заклинание{% endif %}
 </p>
-<div class="detail-title">{% if object.icon %}<img class="detail-icon" src="{% url 'game:media' object.icon.digest %}" width="64" height="64" alt="">{% endif %}
+<div class="detail-title">{% if object.icon %}<img class="detail-icon{% if kind == 'item' %} item-icon{% elif kind == 'action' %} action-icon{% endif %}" src="{% url 'game:media' object.icon.digest %}" width="64" height="64" alt="">{% endif %}
 <h2>{{ object.name }}
 </h2>
 </div>{% if kind == 'action' %}
@@ -12,14 +12,14 @@
 <div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
 </div>{% if readonly %}
 <button class="button secondary" type="button" data-close>Закрыть</button>{% elif is_master %}
-<div class="card-tools{% if kind == 'event' %} event-card-tools{% endif %}"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
-{% if kind == 'event' %}{% include 'game/_catalog_send.html' %}{% endif %}
+<div class="card-tools catalog-card-tools"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
+{% include 'game/_catalog_send.html' %}
 <form action="{% url 'game:catalog_delete' kind object.pk %}" method="post" hx-post="{% url 'game:catalog_delete' kind object.pk %}" hx-target="#dialog-content" data-confirm="Удалить «{{ object.name }}» из игры и всех связанных записей?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="button {% if kind == 'event' %}secondary{% else %}danger{% endif %} small" type="submit">⌫ Удалить
+<button class="button secondary small" type="submit">⌫ Удалить
 </button>
 </form>
 </div>
-{% if kind != 'event' %}{% include 'game/_catalog_send.html' %}{% endif %}{% elif character %}{% if kind == 'action' %}
+{% elif character %}{% if kind == 'action' %}
 <form action="{% url 'game:apply_action' character.pk object.pk %}" method="post" hx-post="{% url 'game:apply_action' character.pk object.pk %}" hx-target="#dialog-content">{% csrf_token %}{% include 'game/_request_id.html' %}
 <button class="button wide">Применить
 </button>

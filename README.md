@@ -98,6 +98,10 @@ node --check game/static/game/app.js
 node tests/import_bulk.test.cjs
 ```
 
+Дополнительная браузерная регрессия подсказок и карточек: `.\.venv\Scripts\python.exe tests/catalog_dialog.browser.py`. Нужны локальные Playwright для Python и Chrome; проверка использует шаблоны без рабочей базы и сохраняет снимки в `.browser-artifacts/catalog-dialog/`.
+
+Для действий и заклинаний запустите эту проверку с `--actions`; все места показа их иконок проверяет `.\.venv\Scripts\python.exe tests/action_icons.browser.py`.
+
 Тесты используют отдельную базу и временные каталоги изображений.
 Проверка конкурентного списания использует настоящую файловую SQLite.
 Для проверок JavaScript нужен Node.js в PATH; запуск приложения и образ Docker

@@ -7,7 +7,50 @@
   let focusReturn = null, anchorPoint = null, grid = null, notificationTimer;
   const confirmed = new WeakSet();
   const scrollState = new Map();
+  const dialogAnchors = new WeakMap();
+  const tooltip = q('#catalog-tooltip');
+  let tooltipSource = null;
   let readPending = false, lastReadMessage = null;
+  function viewportBounds() {
+    const viewport = window.visualViewport;
+    return {left:viewport?.offsetLeft || 0, top:viewport?.offsetTop || 0,
+      width:viewport?.width || innerWidth, height:viewport?.height || innerHeight};
+  }
+  function hideCatalogTooltip() {
+    if (!tooltip) return;
+    tooltip.hidden = true;
+    tooltipSource?.removeAttribute('aria-describedby');
+    tooltipSource = null;
+  }
+  function showCatalogTooltip(source) {
+    if (!tooltip || appDialog?.open) return;
+    hideCatalogTooltip();
+    tooltipSource = source;
+    tooltip.textContent = source.dataset.catalogTooltip;
+    source.setAttribute('aria-describedby', tooltip.id);
+    const viewport = viewportBounds(), pad = 14;
+    tooltip.style.maxWidth = `${Math.max(0, Math.min(320, viewport.width - pad * 2))}px`;
+    tooltip.style.maxHeight = `${Math.max(0, viewport.height - pad * 2)}px`;
+    tooltip.hidden = false;
+    const sourceRect = source.getBoundingClientRect(), rect = tooltip.getBoundingClientRect();
+    const above = sourceRect.top - rect.height - 7;
+    const y = above >= viewport.top + pad ? above : sourceRect.bottom + 7;
+    tooltip.style.left = `${Math.max(viewport.left + pad, Math.min(sourceRect.left + (sourceRect.width - rect.width) / 2, viewport.left + viewport.width - rect.width - pad))}px`;
+    tooltip.style.top = `${Math.max(viewport.top + pad, Math.min(y, viewport.top + viewport.height - rect.height - pad))}px`;
+  }
+  if (tooltip) {
+    ['pointerover', 'focusin'].forEach(name => document.addEventListener(name, event => {
+      const source = event.target.closest('[data-catalog-tooltip]');
+      if (source && !source.contains(event.relatedTarget)) showCatalogTooltip(source);
+    }));
+    ['pointerout', 'focusout'].forEach(name => document.addEventListener(name, event => {
+      if (tooltipSource?.contains(event.target) && !tooltipSource.contains(event.relatedTarget)) hideCatalogTooltip();
+    }));
+    document.addEventListener('scroll', hideCatalogTooltip, true);
+    document.addEventListener('htmx:beforeSwap', hideCatalogTooltip);
+    document.addEventListener('htmx:oobBeforeSwap', hideCatalogTooltip);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') hideCatalogTooltip(); });
+  }
   function notify(message) {
     const target = q('#notifications');
     if (!target) return;
@@ -18,20 +61,50 @@
   function csrf() { return q('[name=csrfmiddlewaretoken]')?.value || ''; }
   function refresh() { if (window.htmx && q('#poller')) htmx.trigger('#poller', 'refresh'); }
   function positionDialog(dialog, point) {
-    dialog.style.margin = 'auto'; dialog.style.top = ''; dialog.style.left = '';
-    if (!point || dialog.querySelector('.confirmation,.error-box,.error-page')) return;
-    const rect = dialog.getBoundingClientRect(), pad = 14;
-    const x = Math.max(pad, Math.min(point.x, innerWidth - rect.width - pad));
-    const y = Math.max(pad, Math.min(point.y + 10, innerHeight - rect.height - pad));
+    const viewport = viewportBounds(), pad = 14, scrollTop = dialog.scrollTop;
+    if (dialog === appDialog) {
+      dialog.style.maxHeight = `${Math.max(0, viewport.height - pad * 2)}px`;
+      dialog.style.maxWidth = `${Math.max(0, viewport.width - pad * 2)}px`;
+    }
+    if (!point || dialog.querySelector('.confirmation,.error-box,.error-page')) {
+      dialog.style.margin = 'auto'; dialog.style.top = ''; dialog.style.left = '';
+      dialog.scrollTop = scrollTop;
+      return;
+    }
+    const rect = dialog.getBoundingClientRect();
+    const x = Math.max(viewport.left + pad, Math.min(point.x, viewport.left + viewport.width - rect.width - pad));
+    const y = Math.max(viewport.top + pad, Math.min(point.y + 10, viewport.top + viewport.height - rect.height - pad));
     dialog.style.margin = '0'; dialog.style.left = `${x}px`; dialog.style.top = `${y}px`;
+    dialog.scrollTop = scrollTop;
   }
   function openDialog(dialog, point = null, returnTarget = document.activeElement) {
     if (!dialog) return;
+    hideCatalogTooltip();
+    dialogAnchors.set(dialog, point);
     focusReturn = returnTarget;
     if (!dialog.open) dialog.showModal();
     positionDialog(dialog, point);
   }
   function closeDialog(dialog = appDialog) { if (dialog?.open) dialog.close(); }
+  if (appDialog) {
+    let positionFrame = null;
+    const schedulePosition = () => {
+      if (positionFrame !== null) return;
+      positionFrame = requestAnimationFrame(() => {
+        positionFrame = null;
+        if (appDialog.open) positionDialog(appDialog, dialogAnchors.get(appDialog));
+      });
+    };
+    // Observe the content, not the scroll-constrained dialog: a growing form may
+    // leave the dialog's border box unchanged after it reaches max-height.
+    const content = q('#dialog-content');
+    if (content && window.ResizeObserver) new ResizeObserver(schedulePosition).observe(content);
+    appDialog.addEventListener('toggle', schedulePosition, true);
+    const viewportChanged = () => { hideCatalogTooltip(); schedulePosition(); };
+    window.addEventListener('resize', viewportChanged);
+    window.visualViewport?.addEventListener('resize', viewportChanged);
+    window.visualViewport?.addEventListener('scroll', viewportChanged);
+  }
   function applyFilter(input) {
     const root = document.getElementById(input.dataset.filter);
     if (!root) return;

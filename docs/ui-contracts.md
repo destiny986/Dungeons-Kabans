@@ -8,6 +8,12 @@ Catalog form fields: `name`, `description`, `tags`, event `color`, item/action `
 
 The compact event preview and master event catalog show only the short description (`name`), using the same small rounded rectangle sized to its text; long names wrap within the available width. Master event catalog cards flow left to right and wrap automatically as the panel width changes, with 12px gaps and rows aligned to the top. Empty-list and no-search-results messages occupy the full row. The full description and tags appear in the full card. Event color applies only to compact cards; full cards and catalog form controls, including browser-autofilled fields, keep the neutral paper palette. Master event card controls share the edit button style and occupy one row: edit on the left, send in the center, delete on the right. The recipient form expands below that row without discarding selections.
 
+Item and action/spell icons have no decorative border, padding, background, or shadow in catalogs, inventory/actions, full cards, character selection, import review, or catalog forms. Keyboard focus remains visible on interactive icons. Item catalog forms show only the full preview, with the current icon beside the name; selecting a PNG updates that icon immediately. Event and action preview layouts are unchanged.
+
+Master item and action/spell icons use a single floating dark tooltip outside the scrolling catalog panel, with the name inserted as text and associated through `aria-describedby`. Native `title` and the nested icon label are absent for these icons. Hover and keyboard focus show the tooltip; leaving, scrolling, opening a dialog, viewport changes and HTMX swaps hide it. Long names wrap within the viewport. Other icon contexts retain their existing labels.
+
+Full master item and action/spell cards share the event toolbar: neutral edit/send/delete controls in one row, with the recipient form spanning the row below. Toggling recipients preserves selections. Anchored cards retain their opening point while shown and recompute their position when contents or viewport dimensions change. They stay at least 14px inside viewport edges and scroll internally when content exceeds the available height, preserving focus and scroll during repositioning. Confirmations and error dialogs remain centered.
+
 CharacterForm supplies these iterable helpers, with actual BoundFields (not strings):
 
 * `ability_rows`: `{label, ability, save}` (six rows).

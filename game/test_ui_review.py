@@ -5,7 +5,7 @@ from html.parser import HTMLParser
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from game.models import Action, Character, CharacterGrant, ChatMessage, Event, MediaAsset
+from game.models import Action, Character, CharacterGrant, ChatMessage, Event, Item, MediaAsset
 from game.test_web import joined
 
 pytestmark = pytest.mark.django_db
@@ -60,19 +60,41 @@ def test_master_event_cards_show_only_names_and_keep_search_metadata(ui_master):
         assert 'data-dialog' in attrs
 
 
-def test_master_full_event_card_is_neutral_and_keeps_all_three_controls(ui_master):
-    event = Event.objects.create(name='Кабан', description='Описание события', color='blue', tags=['Лес'])
-    html = ui_master.get(reverse('game:card', args=['event', event.pk])).content.decode()
+@pytest.mark.parametrize('kind', ['event', 'item', 'action'])
+def test_master_full_catalog_card_is_neutral_and_keeps_all_three_controls(ui_master, kind):
+    if kind == 'event':
+        event = Event.objects.create(name='Кабан', description='Описание события', color='blue', tags=['Лес'])
+    else:
+        asset = MediaAsset.objects.create(digest='b'*64, path='b'*64+'.png', width=64, height=64)
+        model = Item if kind == 'item' else Action
+        event = model.objects.create(name='Факел', description='Описание предмета', tags=['Лес'], icon=asset)
+    html = ui_master.get(reverse('game:card', args=[kind, event.pk])).content.decode()
     elements = Controls(html).elements
     article = next(attrs for tag, attrs in elements if tag == 'article')
     assert 'event-blue' not in article.get('class', '').split()
     assert event.description in html and 'Лес' in html
-    edit = next(attrs for tag, attrs in elements if tag == 'a' and attrs.get('href') == reverse('game:catalog_edit', args=['event', event.pk]))
+    edit = next(attrs for tag, attrs in elements if tag == 'a' and attrs.get('href') == reverse('game:catalog_edit', args=[kind, event.pk]))
     send = next(attrs for tag, attrs in elements if tag == 'summary')
     delete = next(attrs for tag, attrs in elements if tag == 'button' and attrs.get('type') == 'submit')
     assert set(edit['class'].split()) == set(send['class'].split()) == set(delete['class'].split())
+    tools = html.split('class="card-tools', 1)[1].split('</details>', 1)[0]
+    assert '<summary' in tools  # Sending belongs to the same toolbar as editing.
     for operation in ('catalog_send', 'catalog_delete'):
-        assert any(tag == 'form' and attrs.get('method') == 'post' and attrs.get('action') == reverse('game:' + operation, args=['event', event.pk]) for tag, attrs in elements)
+        assert any(tag == 'form' and attrs.get('method') == 'post' and attrs.get('action') == reverse('game:' + operation, args=[kind, event.pk]) for tag, attrs in elements)
+
+
+@pytest.mark.parametrize('kind', ['item', 'action'])
+def test_master_icon_tooltip_has_no_native_title_in_page_or_poll(ui_master, kind):
+    asset = MediaAsset.objects.create(digest='c'*64, path='c'*64+'.png', width=64, height=64)
+    model = Item if kind == 'item' else Action
+    item = model.objects.create(name='Шипы <железные>', description='Описание', icon=asset)
+    for endpoint in ('game:master', 'game:master_poll'):
+        html = ui_master.get(reverse(endpoint)).content.decode()
+        icon = next(attrs for tag, attrs in Controls(html).elements
+                    if tag == 'a' and attrs.get('href') == reverse('game:card', args=[kind, item.pk]))
+        assert 'title' not in icon
+        assert icon['aria-label'] == item.name
+        assert icon['data-catalog-tooltip'] == item.name
 
 
 def test_character_editor_exposes_combined_filters_and_slot_level(ui_master):
