@@ -51,6 +51,20 @@ def rewrite(content, transform):
 
 
 class ArchiveTests(TransactionTestCase):
+    def test_free_action_roundtrip(self):
+        _, _, action = self.domain()
+        action.activation = 'free'
+        action.save()
+        content = export_archive()
+        with zipfile.ZipFile(io.BytesIO(content)) as source:
+            self.assertEqual(json.loads(source.read('actions.json'))[0]['activation'], 'free')
+        Character.objects.all().delete()
+        Action.objects.all().delete()
+        Item.objects.all().delete()
+        job = create_import(io.BytesIO(content), 'a' * 32)
+        commit_import(job.id, 'a' * 32, {})
+        self.assertEqual(Action.objects.get().activation, 'free')
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.settings = override_settings(IMPORT_ROOT=Path(self.tmp.name)/'imports', MEDIA_ROOT=Path(self.tmp.name)/'media')

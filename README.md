@@ -96,11 +96,14 @@ PUBLIC_BASE_URL; производственная конфигурация оп�
 .\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
 node --check game/static/game/app.js
 node tests/import_bulk.test.cjs
+node tests/catalog_preview.test.cjs
 ```
 
 Дополнительная браузерная регрессия подсказок и карточек: `.\.venv\Scripts\python.exe tests/catalog_dialog.browser.py`. Нужны локальные Playwright для Python и Chrome; проверка использует шаблоны без рабочей базы и сохраняет снимки в `.browser-artifacts/catalog-dialog/`.
 
 Для действий и заклинаний запустите эту проверку с `--actions`; все места показа их иконок проверяет `.\.venv\Scripts\python.exe tests/action_icons.browser.py`.
+
+Соответствие предпросмотров настоящим карточкам и обновление полей проверяет `.\.venv\Scripts\python.exe tests/catalog_previews.browser.py` на ширинах 1440/390 px без обращения к базе. Нужны Playwright для Python и Chrome; снимки сохраняются в `.browser-artifacts/catalog-previews/`.
 
 Тесты используют отдельную базу и временные каталоги изображений.
 Проверка конкурентного списания использует настоящую файловую SQLite.

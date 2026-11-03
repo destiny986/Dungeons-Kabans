@@ -144,6 +144,17 @@
       const field = form.elements.namedItem(target.dataset.previewSelect);
       if (field?.selectedOptions) target.textContent = field.selectedOptions[0]?.textContent || '';
     });
+    qa('[data-preview-slot]', root).forEach(target => {
+      target.hidden = form.elements.namedItem('resource')?.value !== 'spell_slot';
+    });
+    qa('[data-action-meta][data-activation-symbols]', root).forEach(target => {
+      const activation = form.elements.namedItem('activation')?.value;
+      const resource = form.elements.namedItem('resource')?.value;
+      q('[data-action-badge="activation"]', target).hidden = activation === 'free';
+      q('[data-action-badge="resource"]', target).hidden = resource === 'none';
+      q('[data-preview-activation-symbol]', target).textContent = JSON.parse(target.dataset.activationSymbols)[activation] || '';
+      target.hidden = activation === 'free' && resource === 'none';
+    });
     const tags = q('[data-preview-tags]', root), field = form.elements.namedItem('tags');
     if (tags && field) {
       tags.replaceChildren();

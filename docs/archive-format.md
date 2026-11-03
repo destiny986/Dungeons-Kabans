@@ -13,7 +13,7 @@ matching the JSON model/form domain. Nonnegative database integer fields retain
 their existing bounds. Files are still subject to the archive byte limits.
 
 Catalog records contain `id,name,description,tags`, with `color` for events,
-`icon` for items and `icon,activation,resource,slot_level` for actions. Characters
+`icon` for items and `icon,activation,resource,slot_level` for actions. Activation accepts `action`, `bonus`, `reaction`, `free`; `free` does not restrict the resource. This addition keeps schema version 1 and the existing ZIP structure. Older application versions do not accept `free`. Characters
 contain all exported fields listed by `CHARACTER` in the schema: statistics,
 five weapons, portrait, resources, inventory quantities and action membership.
 Inventory item IDs and action IDs must resolve inside the same archive.

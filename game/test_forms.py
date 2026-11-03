@@ -21,6 +21,17 @@ def character_data(**extra):
 
 
 class FormTests(TransactionTestCase):
+    def test_create_and_edit_free_action_with_resource(self):
+        data = dict(name='Бесплатное действие', description='Описание', activation='free', resource='none')
+        form = forms.get_catalog_form('action', data, {'icon': png()})
+        self.assertTrue(form.is_valid(), form.errors)
+        action = form.save()
+        data.update(revision=action.revision, resource='rage')
+        edit = forms.get_catalog_form('action', data, instance=action)
+        self.assertTrue(edit.is_valid(), edit.errors)
+        saved = edit.save()
+        self.assertEqual((saved.activation, saved.resource, saved.slot_level), ('free', 'rage', None))
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

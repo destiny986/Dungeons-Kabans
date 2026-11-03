@@ -95,3 +95,19 @@ API, модели и vendor-файлы не менялись. Commit, push и д
 - `python -m pytest -q`: **197 passed, 3 skipped, 30 subtests passed**; предупреждение существующего ZIP-теста о повторном `events.json`.
 - Django check, проверка отсутствия миграций, JavaScript syntax/import bulk и `git diff --check` прошли. Для JavaScript использован локальный `.venv/Lib/site-packages/playwright/driver/node.exe`.
 - Chrome: `tests/action_icons.browser.py`, `tests/catalog_dialog.browser.py --actions`, существующие проверки предметов `tests/item_icons.browser.py` и `tests/catalog_dialog.browser.py` прошли на ширинах 1440/390/320 px. Рабочая база не использовалась; снимки находятся в `.browser-artifacts/`.
+
+## Предпросмотры карточек каталога — 2 ноября 2026
+
+- Полные карточки и предпросмотры используют общее содержимое, краткое событие — общий шаблон с каталогом мастера. У действий удалён краткий предпросмотр, текущая/выбранная PNG показывается рядом с названием. Метаданные сохраняют символы и показывают уровень только для ячейки заклинания. После ошибочного POST предпросмотр использует введённые поля формы.
+- `python -m pytest -q`: **213 passed, 3 skipped, 30 subtests passed**; одно предупреждение существующего ZIP-теста о повторном `events.json`.
+- Django check, отсутствие миграций, JavaScript syntax/import bulk/catalog preview и `git diff --check`: успешно. Node.js вызван по полному пути из локального runtime Codex, поскольку команда отсутствует в PATH. Новая JavaScript-проверка включена в CI и README.
+- `tests/catalog_previews.browser.py`: Chrome 1440/390 px, сравнение настоящих карточек и предпросмотров по тексту и вычисленным стилям; смена типа/ресурса/уровня, всех цветов события, текста, тегов и PNG, отсутствие горизонтального переполнения и ошибок JavaScript. Снимки: `.browser-artifacts/catalog-previews/`. Проверка не обращается к базе.
+- Существующие `tests/action_icons.browser.py`, `tests/item_icons.browser.py`, `tests/catalog_dialog.browser.py` и вариант `--actions` прошли на 1440/390/320 px. Независимое ревью итоговых изменений не выявило замечаний.
+
+## Тип «Бесплатно» и плашки действий — 2 ноября 2026
+
+- Добавлены `free` и миграция 0002; существующие значения и default `action` сохранены. Плашки используют ◯/△/✧ и ▣; `free` и `none` скрываются независимо во всех представлениях метаданных. Живой предпросмотр сохраняет скрытые элементы.
+- Полный pytest: **270 passed, 3 skipped, 30 subtests passed**. Единственное предупреждение — существующий тест ZIP с повторным `events.json`. Проверены 16 сочетаний в карточках, предпросмотре и импорте, формы, ошибочный POST, группировка игрока, применение со всеми ресурсами и ZIP roundtrip.
+- Django check, makemigrations --check --dry-run, Node syntax/import_bulk/catalog_preview и git diff --check прошли. Node вызван по полному пути локального runtime Codex.
+- Chrome: catalog_previews.browser.py на 1440/390 px, включая восстановление плашек после ошибочного POST; action_icons.browser.py на 1440/390/320 px, включая фильтр free и отсутствие обеих плашек. Снимки просмотрены в .browser-artifacts/. Браузерные проверки не используют рабочую базу.
+- Независимое ревью области изменений не выявило замечаний. Рабочие данные, commit и push не затрагивались; миграция включена в исходники, к рабочей БД не применялась.

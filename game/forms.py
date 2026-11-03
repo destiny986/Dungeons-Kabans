@@ -124,6 +124,19 @@ class CatalogForm(RevisionForm):
     def clean_tags(self):
         return list(dict.fromkeys(tag.strip() for tag in self.cleaned_data['tags'].split(',') if tag.strip()))
 
+    @property
+    def preview(self):
+        """Model-shaped display values from bound fields, even on invalid POSTs."""
+        values = {name: self[name].value() for name in
+                  ('name', 'description', 'color', 'activation', 'resource', 'slot_level')
+                  if name in self.fields}
+        values['tags'] = [tag.strip() for tag in (self['tags'].value() or '').split(',') if tag.strip()]
+        values['icon'] = getattr(self.instance, 'icon', None)
+        for name in ('activation', 'resource'):
+            if name in self.fields:
+                values[f'get_{name}_display'] = dict(self.fields[name].choices).get(values[name], '')
+        return values
+
     def assign(self, obj):
         for key in ('name', 'description', 'tags', 'color', 'activation', 'resource', 'slot_level'):
             if key in self.cleaned_data:

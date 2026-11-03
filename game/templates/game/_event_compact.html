@@ -1,0 +1,4 @@
+<{% if preview %}div{% else %}a{% endif %} class="event-card event-compact event-{{ object.color|default:'yellow' }}" {% if preview %}data-preview-card{% else %}data-search="{{ object.search_text }} {{ object.name }} {{ object.description }} {{ object.tags|join:' ' }}" href="{% url 'game:card' 'event' object.pk %}" hx-get="{% url 'game:card' 'event' object.pk %}" hx-target="#dialog-content" data-dialog{% endif %}>
+<h3{% if preview %} data-preview="name"{% endif %}>{{ object.name|default_if_none:'' }}
+</h3>
+</{% if preview %}div{% else %}a{% endif %}>

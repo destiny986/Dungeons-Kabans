@@ -1,0 +1,12 @@
+{% load action_metadata %}
+<p class="eyebrow">{% if kind == 'event' %}Событие{% elif kind == 'item' %}Предмет{% else %}Действие / заклинание{% endif %}
+</p>
+<div class="detail-title">{% if kind != 'event' %}{% if object.icon or preview %}<img class="detail-icon{% if kind == 'item' %} item-icon{% elif kind == 'action' %} action-icon{% endif %}" {% if preview %}data-preview-image {% endif %}{% if object.icon %}src="{% url 'game:media' object.icon.digest %}"{% else %}hidden{% endif %} width="64" height="64" alt="">{% endif %}{% endif %}
+<h2{% if preview %} data-preview="name"{% endif %}>{{ object.name|default_if_none:'' }}
+</h2>
+</div>{% if kind == 'action' %}
+{% action_metadata object.activation object.resource object.slot_level preview=preview %}{% endif %}
+<div class="prose card-description"{% if preview %} data-preview="description"{% endif %}>{{ object.description|default_if_none:''|linebreaksbr }}
+</div>
+<div class="tags"{% if preview %} data-preview-tags{% endif %}>{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
+</div>

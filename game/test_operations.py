@@ -69,6 +69,31 @@ def test_exact_slot_priority_and_idempotency(setup):
     assert ChatMessage.objects.get().metadata['slot_level'] == 2
 
 
+@pytest.mark.parametrize('resource', ['none', 'spell_slot', 'rage', 'wildshape'])
+def test_free_action_spends_only_its_required_resource(setup, resource):
+    _, char, _, action, _ = setup
+    char.can_rage = char.can_wildshape = True
+    char.save()
+    action.activation = 'free'
+    action.resource = resource
+    action.slot_level = 2 if resource == 'spell_slot' else None
+    action.save()
+    stock = None
+    if resource == 'spell_slot':
+        stock = slot(char, 2)
+    elif resource != 'none':
+        stock = CharacterResource.objects.create(character=char, kind=resource, current=1, maximum=1)
+    key = uuid.uuid4()
+    result = apply(setup, key)
+    assert result['status'] == 'ok'
+    assert apply(setup, key) == result
+    if stock:
+        stock.refresh_from_db()
+        assert stock.current == 0
+    assert ChatMessage.objects.get().action_id == action.pk
+    assert Operation.objects.count() == 1
+
+
 def test_offer_is_minimum_and_confirmation_once(setup):
     _, char, _, action, _ = setup
     fourth, sixth = slot(char, 4), slot(char, 6)

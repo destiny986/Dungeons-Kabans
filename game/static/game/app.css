@@ -174,6 +174,7 @@ dialog h2{padding-right:20px}
 .detail-card .eyebrow{margin-bottom:17px}
 .detail-title{display:flex;align-items:center;gap:16px;margin-bottom:20px}
 .detail-title h2{margin:0;overflow-wrap:anywhere;font-size:1.65rem}
+.detail-card .detail-title h2{padding-right:20px}
 .detail-icon{border:1px solid #ae9f81;padding:3px;object-fit:cover;flex-shrink:0}
 .card-description{margin-bottom:20px}
 .prose{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
@@ -196,10 +197,9 @@ legend{font-weight:bold;margin-bottom:10px}
 .preview-aside>h2{margin-bottom:10px}
 .preview-label{font:11px system-ui,sans-serif;color:var(--muted);margin:25px 0 10px}
 .preview-full{padding:24px;margin-top:14px}
-.preview-full h2{font-size:1.3rem}
-.preview-full p{font-size:.9rem;white-space:pre-wrap}
-.preview-icon img{width:64px;height:64px;object-fit:cover;margin-bottom:12px;border:1px solid #a99b7b;padding:2px}
-.preview-compact{min-height:110px}
+.character-editor .preview-full h2{font-size:1.3rem}
+.character-editor .preview-full p{font-size:.9rem;white-space:pre-wrap}
+.card-description[data-preview]{white-space:pre-line}
 .event-card.event-compact{display:inline-block;width:fit-content;max-width:100%;min-height:0;align-self:flex-start;padding:9px 13px;border-radius:12px;vertical-align:top}
 .event-compact:before{border-radius:9px}
 .event-compact h3{font-size:.9rem;line-height:1.35;margin:0}

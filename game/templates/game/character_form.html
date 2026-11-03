@@ -1,4 +1,5 @@
 {% extends 'game/base.html' %}{% block title %}{% if is_edit %}Редактирование персонажа{% else %}Новый персонаж{% endif %}{% endblock %}{% block nav %}<a href="{% url 'game:characters' %}">← Все персонажи</a>{% endblock %}{% block content %}
+{% load action_metadata %}
 <div class="page-heading">
 <div>
 <p class="eyebrow">Лист героя
@@ -109,7 +110,7 @@
 <div class="form-grid action-filters">
 <div class="field"><label for="action-activation-filter">Тип действия</label>
 <select id="action-activation-filter" data-filter="action-choices" data-filter-key="activation">
-<option value="">Все типы</option><option value="action">Действие</option><option value="bonus">Бонусное действие</option><option value="reaction">Реакция</option>
+<option value="">Все типы</option><option value="action">Действие</option><option value="bonus">Бонусное действие</option><option value="reaction">Реакция</option><option value="free">Бесплатно</option>
 </select></div>
 <div class="field"><label for="action-resource-filter">Требуемый ресурс</label>
 <select id="action-resource-filter" data-filter="action-choices" data-filter-key="resource">
@@ -126,7 +127,7 @@
 </div>
 <div id="action-choices" class="catalog-choices">{% for row in form.action_rows %}
 <div class="choice-row" data-activation="{{ row.activation_key }}" data-resource="{{ row.resource_key }}{% if row.resource_key == 'spell_slot' %}_{{ row.slot_level }}{% endif %}" data-search="{{ row.search_text }} {{ row.label }} {{ row.activation }} {{ row.resource }}">{% if row.icon %}<a href="{% url 'game:card' 'action' row.pk %}?preview=1" hx-get="{% url 'game:card' 'action' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog aria-label="Открыть карточку: {{ row.label }}"><img class="action-icon" src="{% url 'game:media' row.icon.digest %}" alt="" width="48" height="48"></a>{% endif %}
-<div><a href="{% url 'game:card' 'action' row.pk %}?preview=1" hx-get="{% url 'game:card' 'action' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog>{{ row.label }}</a><small>{{ row.activation }} · {{ row.resource }}{% if row.slot_level %} · {{ row.slot_level }} уровень{% endif %}</small>
+<div><a href="{% url 'game:card' 'action' row.pk %}?preview=1" hx-get="{% url 'game:card' 'action' row.pk %}?preview=1" hx-target="#dialog-content" data-dialog>{{ row.label }}</a>{% action_metadata row.activation_key row.resource_key row.slot_level %}
 </div><label class="sr-only" for="{{ row.field.id_for_label }}">Выбрать действие: {{ row.label }}</label>{{ row.field }}{{ row.field.errors }}
 </div>{% empty %}
 <p class="help">Сначала создайте действия и заклинания в каталоге мастера.

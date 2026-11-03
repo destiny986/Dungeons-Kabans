@@ -37,7 +37,7 @@ def test_event_preview_keeps_full_description_out_of_compact_card(ui_master, edi
     assert response.status_code == 200
     html = response.content.decode()
     compact = html.split('data-preview-card>', 1)[1].split('<h3 class="preview-label">', 1)[0]
-    full = html.split('<article class="paper preview-full">', 1)[1].split('</article>', 1)[0]
+    full = html.split('<article class="paper preview-full detail-card">', 1)[1].split('</article>', 1)[0]
     assert not any(attrs.get('data-preview') == 'description' for _, attrs in Controls(compact).elements)
     assert any(attrs.get('data-preview') == 'name' for _, attrs in Controls(compact).elements)
     assert any(attrs.get('data-preview') == 'description' for _, attrs in Controls(full).elements)
@@ -105,7 +105,7 @@ def test_character_editor_exposes_combined_filters_and_slot_level(ui_master):
     filters = {attrs['data-filter-key']: attrs for tag, attrs in elements if tag == 'select' and attrs.get('data-filter') == 'action-choices'}
     assert set(filters) == {'activation', 'resource'}
     options = {attrs.get('value') for tag, attrs in elements if tag == 'option'}
-    assert {'action', 'bonus', 'reaction', 'none', 'rage', 'wildshape', *{f'spell_slot_{n}' for n in range(1, 8)}} <= options
+    assert {'action', 'bonus', 'reaction', 'free', 'none', 'rage', 'wildshape', *{f'spell_slot_{n}' for n in range(1, 8)}} <= options
     rows = [attrs for tag, attrs in elements if attrs.get('data-activation') == 'reaction']
     assert rows[0]['data-resource'] == 'spell_slot_7'
     assert '7 уровень' in html

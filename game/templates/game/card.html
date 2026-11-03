@@ -1,16 +1,6 @@
 <article class="detail-card">
-<p class="eyebrow">{% if kind == 'event' %}Событие{% elif kind == 'item' %}Предмет{% else %}Действие / заклинание{% endif %}
-</p>
-<div class="detail-title">{% if object.icon %}<img class="detail-icon{% if kind == 'item' %} item-icon{% elif kind == 'action' %} action-icon{% endif %}" src="{% url 'game:media' object.icon.digest %}" width="64" height="64" alt="">{% endif %}
-<h2>{{ object.name }}
-</h2>
-</div>{% if kind == 'action' %}
-<div class="action-meta"><span>ϟ {{ object.get_activation_display }}</span><span>◇ {{ object.get_resource_display }}{% if object.slot_level %} · {{ object.slot_level }} уровень{% endif %}</span>
-</div>{% endif %}
-<div class="prose card-description">{{ object.description|linebreaksbr }}
-</div>
-<div class="tags">{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
-</div>{% if readonly %}
+{% include 'game/_card_content.html' %}
+{% if readonly %}
 <button class="button secondary" type="button" data-close>Закрыть</button>{% elif is_master %}
 <div class="card-tools catalog-card-tools"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
 {% include 'game/_catalog_send.html' %}

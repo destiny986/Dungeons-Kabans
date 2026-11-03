@@ -25,30 +25,15 @@
 </h2>
 <p class="help">Изменяется по мере заполнения формы
 </p>
-{% if kind != 'item' %}<h3 class="preview-label">Свернутая карточка
+{% with object=form.preview %}
+{% if kind == 'event' %}<h3 class="preview-label">Свернутая карточка
 </h3>
-<div class="event-card preview-compact{% if kind == 'event' %} event-compact{% endif %} event-{{ object.color|default:'yellow' }}" data-preview-card>
-<div class="preview-icon" {% if kind == 'event' %}hidden{% endif %}><img{% if kind == 'action' %} class="action-icon"{% endif %} data-preview-image alt="Выбранная иконка" {% if object.icon %}src="{% url 'game:media' object.icon.digest %}"{% else %}hidden{% endif %}>
-</div>
-<h3 data-preview="name">{{ object.name|default:'Название записи' }}
-</h3>
-{% if kind != 'event' %}<p data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
-</p>{% endif %}
-</div>
+{% include 'game/_event_compact.html' with preview=True %}
 {% endif %}<h3 class="preview-label">Полная карточка
 </h3>
-<article class="paper preview-full">
-{% if kind == 'item' %}<div class="detail-title">
-<img class="detail-icon item-icon" data-preview-image alt="Выбранная иконка" width="64" height="64" {% if object.icon %}src="{% url 'game:media' object.icon.digest %}"{% else %}hidden{% endif %}>
-{% endif %}
-<h2 data-preview="name">{{ object.name|default:'Название записи' }}
-</h2>{% if kind == 'item' %}</div>{% endif %}{% if kind == 'action' %}
-<div class="action-meta"><span data-preview-select="activation">Тип действия</span><span data-preview-select="resource">Ресурс</span><span data-preview="slot_level"></span>
-</div>{% endif %}
-<p class="prose" data-preview="description">{{ object.description|default:'Здесь появится описание.' }}
-</p>
-<div class="tags" data-preview-tags>{% for tag in object.tags %}<span>{{ tag }}</span>{% endfor %}
-</div>
+<article class="paper preview-full detail-card">
+{% include 'game/_card_content.html' with preview=True %}
 </article>
+{% endwith %}
 </aside>
 </div>{% endblock %}

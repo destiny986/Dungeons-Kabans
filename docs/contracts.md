@@ -10,7 +10,7 @@ Django 5.2 project `config`, app `game`. Call `full_clean()` on untrusted input 
 
 ## Models
 
-All UUID primary keys are named `id`. Every catalog inherits `name` (30), unique derived `normalized_name`, required `description`, string-list `tags`, derived normalized `search_text`, `revision` (default 1, minimum 1), and `updated_at`. Search includes name, description and tags. Each catalog has its own name uniqueness namespace. `Event`: `color` in red/blue/green/orange/yellow/cyan. `Item`: required `icon` -> MediaAsset PROTECT (`items`). `Action`: required `icon` PROTECT (`actions`), `activation` action/bonus/reaction, `resource` none/spell_slot/rage/wildshape, nullable `slot_level` (1–7 required exclusively for spell_slot).
+All UUID primary keys are named `id`. Every catalog inherits `name` (30), unique derived `normalized_name`, required `description`, string-list `tags`, derived normalized `search_text`, `revision` (default 1, minimum 1), and `updated_at`. Search includes name, description and tags. Each catalog has its own name uniqueness namespace. `Event`: `color` in red/blue/green/orange/yellow/cyan. `Item`: required `icon` -> MediaAsset PROTECT (`items`). `Action`: required `icon` PROTECT (`actions`), `activation` action/bonus/reaction/free (default action), `resource` none/spell_slot/rage/wildshape, nullable `slot_level` (1–7 required exclusively for spell_slot). Activation `free` (Бесплатно) is independent of resource: use still spends the selected resource and records the operation.
 
 `MediaAsset`: UUID, unique 64 lowercase hex `digest`, relative `path` under MEDIA_ROOT, positive `width,height`, `created_at`. No bytes in DB; media are served through protected delivery, not a public Django media route.
 

@@ -46,7 +46,9 @@ pages['/icons/'] = engines['django'].from_string("""{% extends 'game/base.html' 
     'incoming': {'name': action.name, 'preview_icon': '/media/preview.png', 'activation': 'action', 'resource': 'none'}, 'csrf_token': 'preview',
 })
 pages['/character/'] = render_to_string('game/character_form.html', {
-    'form': SimpleNamespace(action_rows=[{'pk': action.pk, 'icon': asset, 'label': action.name}]),
+    'form': SimpleNamespace(action_rows=[{'pk': action.pk, 'icon': asset, 'label': action.name,
+        'activation_key': 'action', 'resource_key': 'none', 'slot_level': None},
+        {'pk': hero.pk, 'label': 'Бесплатно', 'activation_key': 'free', 'resource_key': 'none', 'slot_level': None}]),
     'csrf_token': 'preview',
 })
 svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><path d="M12 52L52 12" stroke="#b98032" stroke-width="12"/></svg>'
@@ -73,6 +75,13 @@ with sync_playwright() as p:
         page.set_viewport_size({'width': width, 'height': height})
         for path in ['/icons/', '/edit/', '/new/', '/character/']:
             page.goto('http://preview.local' + path)
+            if path == '/character/':
+                page.locator('#action-activation-filter').select_option('free')
+                assert page.locator('.choice-row:visible').count() == 1
+                assert page.locator('.choice-row:visible').get_attribute('data-activation') == 'free'
+                assert page.locator('.choice-row:visible .action-meta').count() == 0
+                page.locator('#action-activation-filter').select_option('')
+                assert page.locator('.choice-row:visible').count() == 2
             images = page.locator('main img:not(.preview-portrait img)')
             assert images.count() > 0
             for icon in images.all():

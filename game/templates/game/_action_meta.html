@@ -1,0 +1,6 @@
+{% if preview or activation != 'free' or resource != 'none' %}
+<div class="action-meta" data-action-meta{% if preview %} data-activation-symbols="{{ activation_symbols }}"{% endif %}{% if activation == 'free' and resource == 'none' %} hidden{% endif %}>
+{% if preview or activation != 'free' %}<span data-action-badge="activation"{% if activation == 'free' %} hidden{% endif %}><span{% if preview %} data-preview-activation-symbol{% endif %}>{{ activation_symbol }}</span> <span{% if preview %} data-preview-select="activation"{% endif %}>{{ activation_label }}</span></span>{% endif %}
+{% if preview or resource != 'none' %}<span data-action-badge="resource"{% if resource == 'none' %} hidden{% endif %}>▣ <span{% if preview %} data-preview-select="resource"{% endif %}>{{ resource_label }}</span>{% if preview %}<span data-preview-slot{% if resource != 'spell_slot' %} hidden{% endif %}> · <span data-preview="slot_level">{{ slot_level|default_if_none:'' }}</span> уровень</span>{% elif resource == 'spell_slot' %} · {{ slot_level }} уровень{% endif %}</span>{% endif %}
+</div>
+{% endif %}

@@ -198,6 +198,7 @@ def test_player_groups_all_spell_levels_in_one_section():
         ('Free action', 'action', 'none', None),
         ('Free bonus', 'bonus', 'none', None),
         ('Free reaction', 'reaction', 'none', None),
+        ('Truly free', 'free', 'none', None),
         ('First spell', 'action', 'spell_slot', 1),
         ('Fifth spell', 'bonus', 'spell_slot', 5),
         ('Rage action', 'action', 'rage', None),
@@ -217,9 +218,9 @@ def test_player_groups_all_spell_levels_in_one_section():
         spell_sections = [section for section in sections if any(action.resource == 'spell_slot' for action in section['actions'])]
         assert len(spell_sections) == 1
         assert {action.pk for action in spell_sections[0]['actions']} == spell_ids
-        assert sections[3] == spell_sections[0]
+        assert sections[4] == spell_sections[0]
         assert [section['label'] for section in sections] == [
-            'Действие', 'Бонусное действие', 'Реакция', 'Заклинания', 'Ярость', 'Дикий облик']
+            'Действие', 'Бонусное действие', 'Реакция', 'Бесплатно', 'Заклинания', 'Ярость', 'Дикий облик']
         assert [(row['kind'], row['level']) for row in response.context['resources']] == [
             ('spell_slot', 1), ('spell_slot', 5), ('rage', 0), ('wildshape', 0)]
 
