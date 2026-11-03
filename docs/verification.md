@@ -182,3 +182,45 @@ API, модели и vendor-файлы не менялись. Commit, push и д
 - Full pytest: 309 passed, 3 skipped, 30 subtests passed; existing duplicate ZIP entry warning only. Django check, makemigrations --check --dry-run, app.js syntax, import_bulk and git diff --check passed.
 - tests/duplicate_action.browser.py: real Chrome at 1440/390/320 px, mixed recipients, escaped names, dialog close and no-JavaScript fallback passed on an isolated database under .browser-artifacts/duplicate-action/. Desktop/mobile screenshots inspected.
 - Independent review of this notice change found no issues. Parallel unrelated workspace changes were preserved. No commit, push or deployment performed.
+
+## Игроки мастера и отмена 10 операций — 3 ноября 2026
+
+- Справа от отдыха добавлена ссылка «+» на управление персонажами; меню ⋮
+  удалено. Мини-карточки переносятся в зависимости от ширины GridStack-панели,
+  список прокручивается над нижней кнопкой отмены и сохраняет позицию при OOB.
+  Полная карточка использует общие с листом игрока характеристики/спасброски,
+  портрет слева, информацию справа и нейтральные кнопки управления внизу.
+- Отдельный UndoEntry хранит 10 общих неотменённых операций. Проверены все виды
+  обратных изменений, разные количества и несколько сообщений массовой выдачи,
+  дубликаты способностей, повышенная ячейка, изменение каталога после расхода,
+  цепочки одного/нескольких персонажей, границы чисел, удалённые сущности,
+  конфликты после здоровья/отдыха/редактирования/отзыва, повтор исходного UUID
+  и UUID отмены, очистка чата, импорт и очистка игровых данных.
+- RED: 24 сервисных теста подтвердили отсутствие журнала; HTTP-проверки —
+  отсутствие маршрута, новой карточки/навигации и сброса истории при импорте.
+  GREEN: 59 проверок undo/operations; 52 проверки HTTP/web/archives. После
+  окончательной правки описания выдачи повторены undo/HTTP: 36 passed.
+- Полный `pytest -q`: **373 passed, 3 skipped, 30 subtests passed**. Одно прежнее
+  предупреждение ZIP-теста о повторном `events.json`. Конкурентная отмена с
+  разными/одинаковыми UUID и гонка с новой выдачей проверены на независимых
+  соединениях файловой SQLite (WAL/IMMEDIATE), отдельно от рабочей базы.
+- Django check, `makemigrations --check --dry-run`, синтаксис app.js и
+  master_activity.js, Node-проверки import_bulk/catalog_preview/chat_activity,
+  `git diff --check`: успешно. Node вызван из локального Playwright runtime.
+  Найдено прежнее несовпадение ожидаемого заголовка активности: в тестах и
+  контракте закреплена текущая надпись «🔴 Новых сообщений», production JS
+  фоновой активности не менялся.
+- `tests/master_players.browser.py`: Chrome 1440/390/320 px и без JavaScript;
+  переход «+», расширение панели и несколько карточек в строке, длинные имена,
+  полная карточка/общие стили кнопок, прокрутка, пустая история, отказ и
+  подтверждение, неизменность UUID/цели при polling, конфликт новой вершины,
+  обновление двух чатов и сохранность черновиков/получателя. Снимки панели,
+  карточки и подтверждения просмотрены в `.browser-artifacts/master-undo/`.
+- `tests/chat.browser.py`: Chrome 1440/390/320 px и без JavaScript — успешно;
+  существующая геометрия, расходы, подтверждения и черновики чата сохранены.
+- `tests/chat_activity.browser.py`: Chrome 1440/390 px — успешно; фоновые
+  запросы, мигание/счётчик, очистка истории, черновики и выбор получателя.
+- Независимое read-only ревью реализации и контрактов не выявило замечаний.
+  Добавлена и применена к локальной базе миграция `0003_undoentry`; тестовые
+  операции выполнялись на отдельных БД. Изменения сохранены в основной папке
+  проекта и текущей ветке, без push, merge и доставки.

@@ -1,6 +1,6 @@
 # Master players and bounded undo Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Обновить панель игроков и добавить подтверждаемую последовательную отмену 10 последних игровых операций.
 
@@ -36,11 +36,11 @@
 `game.operations.undo_last(request, entry_id, request_id)` возвращает стандартный result;
 `undo_preview(request, entry_id)` возвращает confirm result без записи операции.
 
-- [ ] Написать тесты всех пяти обратных изменений, групповых выдач/дубликатов, лимита 10/11, replay, цепочки и конфликтов, числовых границ, удалённых сущностей, исторического ресурса, подтверждений предложенной ячейки, приватных сообщений и авторизации.
-- [ ] Запустить `.\.venv\Scripts\python.exe -m pytest game/test_undo.py -q`, убедиться в ожидаемом отсутствии журнала/отмены.
-- [ ] Создать модель/миграцию и реализацию. Payload хранит типизированные эффекты, версии до/после и поколение доступа, точные значения и все message IDs. `_complete` сохраняет журнал в общей транзакции. При отмене сначала валидировать все эффекты, затем восстановить и повысить revision; предыдущую ожидаемую версию продвигать только через непрерывную цепочку.
-- [ ] Прогнать `game/test_undo.py game/test_operations.py`, ожидается PASS.
-- [ ] Commit `feat: record and undo last ten game operations`.
+- [x] Написать тесты всех пяти обратных изменений, групповых выдач/дубликатов, лимита 10/11, replay, цепочки и конфликтов, числовых границ, удалённых сущностей, исторического ресурса, подтверждений предложенной ячейки, приватных сообщений и авторизации.
+- [x] Запустить `.\.venv\Scripts\python.exe -m pytest game/test_undo.py -q`, убедиться в ожидаемом отсутствии журнала/отмены.
+- [x] Создать модель/миграцию и реализацию. Payload хранит типизированные эффекты, версии до/после и поколение доступа, точные значения и все message IDs. `_complete` сохраняет журнал в общей транзакции. При отмене сначала валидировать все эффекты, затем восстановить и повысить revision; предыдущую ожидаемую версию продвигать только через непрерывную цепочку.
+- [x] Прогнать `game/test_undo.py game/test_operations.py`, ожидается PASS.
+- [x] Commit `feat: record and undo last ten game operations`.
 
 ### Task 2: HTTP, сброс при переносе данных и панель игроков
 
@@ -48,11 +48,11 @@
 
 **Interfaces:** POST `game:undo_last` `/master/undo/`, fields `entry_id`, `request_id`, optional `confirmed=1`. First POST returns centered escaped confirmation; confirmed POST calls Task 1 service. `master_context` includes `undo_entry`; card context includes six ability rows.
 
-- [ ] Написать HTTP-тесты no-write preview, no-JS fallback, POST/CSRF/master-only, stale target, replay, clear-chat survival, wipe/import reset; проверить новую навигацию и карточку.
-- [ ] Запустить область тестов, ожидается FAIL из-за отсутствия маршрута/интерфейса/сброса.
-- [ ] Добавить endpoint и подтверждение с сохранённым UUID/entry_id. Сброс на успешном импорте внутри сервиса и wipe внутри транзакции, без сброса на повторе уже завершённого импорта. Список/нижняя кнопка внутри существующего poll target, список скроллится отдельно. Общий partial характеристик. + справа от отдыха, удалить ⋮, адаптивные мини-карточки, нейтральные нижние кнопки.
-- [ ] Прогнать `game/test_undo.py game/test_web.py game/test_archives.py`, ожидается PASS.
-- [ ] Commit `feat: expose confirmed undo and refresh master players panel`.
+- [x] Написать HTTP-тесты no-write preview, no-JS fallback, POST/CSRF/master-only, stale target, replay, clear-chat survival, wipe/import reset; проверить новую навигацию и карточку.
+- [x] Запустить область тестов, ожидается FAIL из-за отсутствия маршрута/интерфейса/сброса.
+- [x] Добавить endpoint и подтверждение с сохранённым UUID/entry_id. Сброс на успешном импорте внутри сервиса и wipe внутри транзакции, без сброса на повторе уже завершённого импорта. Список/нижняя кнопка внутри существующего poll target, список скроллится отдельно. Общий partial характеристик. + справа от отдыха, удалить ⋮, адаптивные мини-карточки, нейтральные нижние кнопки.
+- [x] Прогнать `game/test_undo.py game/test_web.py game/test_archives.py`, ожидается PASS.
+- [x] Commit `feat: expose confirmed undo and refresh master players panel`.
 
 ### Task 3: Проверка приложения и контрактов
 
@@ -60,11 +60,11 @@
 
 **Interfaces:** схема и публичное поведение Task 1/2; без новых runtime-зависимостей.
 
-- [ ] Проверить конкурентную отмену и новую операцию на файловой тестовой SQLite; добавить регрессионный тест при выявленном дефекте.
-- [ ] Выполнить `pytest -q`, `manage.py check`, `manage.py makemigrations --check --dry-run`, `node --check game/static/game/app.js`, `node tests/import_bulk.test.cjs`, `git diff --check`.
-- [ ] В отдельной базе проверить браузером desktop/mobile, resize панели, длинные имена, портрет/шесть характеристик, отзыв/редактирование, отмену подтверждения, массовую отмену и обновление чатов, сохранность черновика и stale confirmation.
-- [ ] Обновить контракты и журнал проверок; отметить spec approved. Commit `docs: document bounded undo and verification`.
-- [ ] Независимый финальный code review всей реализации; исправить существенные замечания с регрессионной проверкой, повторить затронутые проверки и зафиксировать итог.
+- [x] Проверить конкурентную отмену и новую операцию на файловой тестовой SQLite; добавить регрессионный тест при выявленном дефекте.
+- [x] Выполнить `pytest -q`, `manage.py check`, `manage.py makemigrations --check --dry-run`, `node --check game/static/game/app.js`, `node tests/import_bulk.test.cjs`, `git diff --check`.
+- [x] В отдельной базе проверить браузером desktop/mobile, resize панели, длинные имена, портрет/шесть характеристик, отзыв/редактирование, отмену подтверждения, массовую отмену и обновление чатов, сохранность черновика и stale confirmation.
+- [x] Обновить контракты и журнал проверок; отметить spec approved. Commit `docs: document bounded undo and verification`.
+- [x] Независимый финальный code review всей реализации; исправить существенные замечания с регрессионной проверкой, повторить затронутые проверки и зафиксировать итог.
 
 ## Execution ledger
 

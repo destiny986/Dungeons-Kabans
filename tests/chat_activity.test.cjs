@@ -48,7 +48,7 @@ function setup(enabled = true, hidden = false) {
   assert.equal(s.requests.length, 1);
   assert.match(s.requests[0].url, /after=9007199254740993/);
   await s.respond(3);
-  assert.equal(s.document.title, '● Новых записей: 3');
+  assert.equal(s.document.title, '🔴 Новых сообщений: 3');
   s.fire(1000);
   assert.equal(s.document.title, `(3) ${original}`);
   s.fire(5000); await s.respond(3);
@@ -70,7 +70,7 @@ function setup(enabled = true, hidden = false) {
   late.resolve({ok:true, json:async () => ({count:99, max_id:'9007199254741111'})}); await s.tick();
   assert.equal(s.document.title, original);
   await s.respond(1);
-  assert.equal(s.document.title, '● Новых записей: 1');
+  assert.equal(s.document.title, '🔴 Новых сообщений: 1');
   // Hidden OOB updates must not acknowledge unseen activity.
   s.messages([s.message('9007199254741100')]); s.swap();
   s.fire(5000);

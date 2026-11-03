@@ -26,6 +26,7 @@ All UUID primary keys are named `id`. Every catalog inherits `name` (30), unique
 | ChatMessage | BigAutoField id cursor; kind text/event/item_grant/action_grant/action_use/item_remove/health/rest; from_master false; nullable sender_character CASCADE (`sent_messages`); blank text; nullable event/item/action CASCADE (each `chat_messages`); object metadata; created_at; recipients M2M Character (`received_messages`) through MessageRecipient. |
 | MessageRecipient | message CASCADE (`recipient_links`), character CASCADE (`message_receipts`), unique message/character. Removing recipient character only removes their link; deleting a structured catalog FK removes the message. No substring rewriting of text. |
 | Operation | UUID, scope (255), key UUID, fingerprint (64), object result, created_at; unique scope/key. Durable idempotency only; no service yet. |
+| UndoEntry | BigAutoField id gives global order; operation OneToOne CASCADE (`undo_entry`), kind (30), description, object payload with typed effects and all message IDs. At most 10 pending entries; independent of chat retention. Does not replace durable Operation. |
 | ImportJob | UUID, indexed session_key (40), status staged/review/committing/complete/cancelled/failed, relative directory, objects payload/preview/choices, base_digest (64, blank permitted), created_at, updated_at. Temporary tracking excluded from domain exports. |
 
 Implicit IDs for resource, inventory, action grant and recipient rows are BigAutoField. Other UUID fields and message IDs are as listed.

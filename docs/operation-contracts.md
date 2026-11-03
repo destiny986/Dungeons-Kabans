@@ -1,5 +1,45 @@
 # Atomic operations and private chat
 
+## Bounded undo
+
+`undo_preview(request, entry_id)` requires master access inside a short atomic
+transaction and returns `{status: confirm, entry_id, message}` for the exact
+current journal head, without writes. `undo_last(request, entry_id, request_id)`
+is master-only, atomic and idempotent; only that exact head may be reversed.
+Invalid identifiers return `error`; an absent/replaced head or changed game
+state returns `stale` with a Russian explanation. A failed reversal changes
+neither any recipient nor logs/history. A conflicting head is not skipped.
+
+The global UndoEntry stack retains 10 pending successful catalog grants,
+player item removals and action uses. One multi-recipient grant is one entry;
+all its message IDs and actual effects are recorded in the original transaction.
+No-op duplicate action grants, failed requests, slot offers and replays add no
+entry. Item reversal restores exact prior quantities, action-grant reversal
+removes only newly created memberships, event reversal removes its receipts,
+action use refunds the recorded resource and actual consumed slot level.
+Resource-free use reverses only its log. Related messages disappear from all
+chats; other messages stay. Missing cleared messages are harmless. No undo log
+is sent to chat. Catalog edits do not change the recorded resource expense.
+
+Game effects require the expected character revision, invitation generation,
+active status and matching affected inventory/membership/resource state; required
+deleted entities and numeric bounds cause conflicts. Successful reversals bump
+revision, never decrease it. The nearest earlier effect for each character is
+rebased only when its expected revision matches the reversed effect's prior
+revision and generation. This permits consecutive undos without bridging an
+intervening health change, rest, manual edit or access revocation. Log-only
+reversal can erase an old log despite changed/deleted state, without rebasing
+through that change.
+
+Eviction and reversal remove only UndoEntry; Operation rows remain permanently.
+Repeating an undone request never reapplies its effect or recreates its logs;
+repeating an undo UUID replays its saved result before checking the stack and
+never reverses another step. Evicted entries never return. There is no redo or
+backfill from legacy operations. Chat clearing preserves the stack. Successful
+ZIP commit (including a new no-change commit) and valid domain wipe reset it in
+their transaction; replay of a completed import, previews, cancellation and
+failed imports/wipes do not reset it. The stack is excluded from ZIP.
+
 `game.chat.master_activity(request, after)` requires master capability and returns
 `{count: int, max_id: str}` for existing messages with `id > after`,
 `from_master=False`, and kind `text`, `action_use`, or `item_remove`. Count and

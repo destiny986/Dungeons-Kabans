@@ -1,5 +1,30 @@
 # Journal UI contracts
 
+## Master players and undo
+
+The «Игроки» heading shows «Отдых» and then an `icon-button` plus link to
+`game:characters`, labelled «Управление персонажами». There is no ⋮ menu.
+Inside the unchanged `#master-players` OOB target, `.players-list` lays out
+compact cards left to right with automatic wrapping based on the panel width;
+long names wrap. The list scrolls independently above `.players-footer`, whose
+neutral full-width «Отменить последнее действие» button is disabled for an empty
+stack. Polls preserve the nested list's scroll position. `master_context`
+includes optional `undo_entry`, the latest retained global entry.
+
+The master-only full character card has portrait upper-left, name/class/health
+upper-right, six abilities/saves below using `_ability_grid.html` shared with
+the player sheet. It does not add skills/traits. Bottom controls are neutral
+`button secondary small`: edit left, revoke access right. On narrow screens
+the ability tiles stack without horizontal overflow. Card context includes
+`ability_rows` in addition to `character`.
+
+Undo opens a centered «Важное решение» confirmation with the exact operation,
+actual recipients/quantities or resource refund and consequences for all chats.
+«Назад», Escape and closing do not mutate. Its hidden target and UUID survive
+polls and network retry; a changed stack head produces a stale result and
+requires a fresh preview. No-JavaScript flow uses a full confirmation page.
+Existing chat drafts, selected recipient, player tab and GridStack layout stay.
+
 The master item send form shows a numeric `quantity_<UUID>` next to each
 recipient, default 1, minimum 1, step 1, labelled «Количество для <name>».
 JavaScript disables unselected quantities without changing values, including
@@ -50,12 +75,12 @@ Dynamic canonical field names are those in the brief. `rage_current`, `rage_maxi
 ## Page contexts
 
 * `index.html`: `roles=[{label,url}]`, optional `form` for login.
-* `master.html`: `characters` (active only), `events`, `items`, `actions`, `messages`, `request_id`.
+* `master.html`: `characters` (active only), `events`, `items`, `actions`, `messages`, `request_id`, optional `undo_entry` (latest global pending reversal).
 * `player.html`: `character`, `resources=[{label,kind,level,current,maximum,pips:[bool]}]`, `ability_rows=[{label,value,save}]`, `skill_rows=[{label,value}]`, `action_sections=[{label,actions:[Action]}]`, `inventory=[InventoryEntry]`, `weapons=[{name,attack,damage}]`, `messages`, `unread`, `request_id`.
 * `character_list.html`: `characters` (all).
 * `character_form.html`: `form`, optional `object`, `is_edit`.
 * `catalog_form.html`: `form`, `kind` (`event/item/action`), optional `object`, `is_edit`.
-* `card.html` (dialog fragment): `kind`, `object`, `is_master`, `character` (required for player), `active_characters`, optional `quantity` (player item count; defaults 1), `request_id`. Player card links explicitly include `?character=<uuid>`. Master can edit/delete/send. Player action can apply; player item can remove quantity. Master player details use `active_character.html` with `character`.
+* `card.html` (dialog fragment): `kind`, `object`, `is_master`, `character` (required for player), `active_characters`, optional `quantity` (player item count; defaults 1), `request_id`. Player card links explicitly include `?character=<uuid>`. Master can edit/delete/send. Player action can apply; player item can remove quantity. Master player details use `active_character.html` with `character` and six `ability_rows`.
 * `invitation.html` (dialog fragment): `character`, `link`, `qr_data_uri`.
 * `operation_result.html` (dialog fragment): `result={status,message,offered_level,required_level,proposal}`, optional `character`, `action`, `request_id`. Any `offered_level` displays confirmation, never auto-consumes. Submit `confirmed_level` + opaque `proposal` + `request_id` to `apply_action`.
 * `confirm.html`: `title`, `message`, `action_url`, `button_label`, optional `hidden_fields=[{name,value}]`, `request_id`; reusable full fallback confirmation.
@@ -84,7 +109,7 @@ cannot start after the page hides. Activity responses
 replace the count relative to the baseline rather than incrementing it. Errors
 preserve the last count and retry; stale responses after visibility changes are
 ignored. At positive count, title alternates every 1s between
-`● Новых записей: N` and `(N) <original title>`. Zero count restores the original
+`🔴 Новых сообщений: N` and `(N) <original title>`. Zero count restores the original
 title (including after remote history clearing). Visibility return stops the
 background request/timers, clears the count, acknowledges rendered rows and uses
 the existing HTMX refresh. Reload resets the state. Browser timer throttling may

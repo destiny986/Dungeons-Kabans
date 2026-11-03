@@ -125,7 +125,7 @@ try:
             pp.locator('#chat-text').fill('Новое сообщение игрока')
             pp.get_by_role('button', name='Отправить сообщение').click()
             pp.wait_for_function("document.querySelector('#chat-text').value === ''")
-            mp.wait_for_function('document.title.includes("Новых записей: 1")', timeout=12000)
+            mp.wait_for_function('document.title.includes("Новых сообщений: 1")', timeout=12000)
             mp.wait_for_function('document.title.startsWith("(1)")', timeout=4000)
             # Actual player operations over HTTP with that browser's CSRF/session.
             from game.models import CharacterAction, InventoryEntry, Item

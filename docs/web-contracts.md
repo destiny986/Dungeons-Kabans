@@ -1,5 +1,15 @@
 # HTTP journal integration
 
+POST `/master/undo/` (`game:undo_last`) requires master capability and CSRF.
+Fields: `entry_id` (positive journal integer), `request_id` (UUID), optional
+`confirmed=1`. Without confirmation, validate the request/target and render an
+escaped, centered operation-specific confirmation with no writes. HTMX receives
+`undo_confirm.html`; ordinary forms receive `undo_confirm_page.html`. Both keep
+the exact target and UUID, including a pre-bound client operation key. Only
+confirmed POST delegates to the atomic undo service; target change is 409,
+invalid input 422. Success refreshes/closes the dialog or redirects to master.
+GET is 405. Replayed success remains safe even after its stack row was removed.
+
 Catalog item sends accept repeated `recipients` and `quantity_<UUID>` per selected
 recipient. Missing quantities default to 1; empty or invalid positive integers
 return 422. Unselected quantity fields are ignored. The service validates values

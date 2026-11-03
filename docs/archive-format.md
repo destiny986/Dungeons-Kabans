@@ -31,6 +31,13 @@ consistent database snapshot and read referenced image bytes within that
 transaction. Missing files fail export with a Russian error identifying the
 missing image digest.
 
+The bounded UndoEntry journal is also excluded. A newly successful ZIP commit
+clears that journal inside its domain transaction, including a no-change commit;
+durable Operation rows remain. A replay of an already completed import does not
+clear newer undo entries. Preview, cancellation, failed/stale commit and export
+preserve the journal. A valid domain wipe clears it in the wipe transaction;
+chat clearing preserves it.
+
 `game.archives` exports these service functions:
 
 * `export_archive() -> bytes`; HTTP chooses a dated `.zip` download filename.
