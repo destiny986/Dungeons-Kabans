@@ -309,7 +309,7 @@ def grant_catalog(request, kind, object_id, character_ids, request_id, *, quanti
         message_ids.append(message.pk)
     title = {'item': 'Выдача предмета', 'action': 'Выдача действия/заклинания', 'event': 'Отправка события'}[kind]
     return _complete(scope, key, fingerprint, **extra, undo={
-        'kind': kind + '_grant', 'description': f'{title} «{obj.name}»: ' + ', '.join(descriptions) + '.',
+        'kind': kind + '_grant', 'description': f'{title} «{obj.name}»: ' + ', '.join(descriptions) + ('' if kind == 'item' else '.'),
         'effects': effects, 'message_ids': message_ids} if message_ids else None)
 
 

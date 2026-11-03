@@ -1,0 +1,6 @@
+<div class="section-heading">
+<h2>Характеристики и спасброски</h2><span class="panel-caption">Значение · характеристика · спасбросок</span>
+</div>
+<div class="ability-grid">{% for row in ability_rows %}
+<div class="ability-tile"><strong>{{ row.value|stringformat:'+d' }}</strong><span>{{ row.label }}</span><b>{{ row.save|stringformat:'+d' }}</b></div>
+{% endfor %}</div>

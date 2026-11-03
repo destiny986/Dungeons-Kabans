@@ -1,4 +1,4 @@
-{% for character in characters %}
+<div class="players-list">{% for character in characters %}
 <article class="player-mini"><a href="{% url 'game:card' 'character' character.pk %}" hx-target="#dialog-content" data-dialog hx-get="{% url 'game:card' 'character' character.pk %}" class="portrait-link" title="Открыть лист персонажа">{% include 'game/portrait.html' %}</a>
 <div>
 <h3><a href="{% url 'game:card' 'character' character.pk %}" hx-get="{% url 'game:card' 'character' character.pk %}" hx-target="#dialog-content" data-dialog>{{ character.name }}</a>
@@ -6,22 +6,14 @@
 <p>{{ character.character_class }}
 </p><span class="health-text">♥ {{ character.health_current }} <span>/ {{ character.health_max }}</span></span>
 </div>
-<button class="icon-button" type="button" data-open="revoke-{{ character.pk }}" aria-label="Управление доступом: {{ character.name }}">⋮
-</button>
-<dialog id="revoke-{{ character.pk }}" aria-label="Доступ персонажа">
-<button class="dialog-close" type="button" data-close aria-label="Закрыть">×
-</button>
-<h2>{{ character.name }}
-</h2>
-<p>Отозвать приглашение и завершить доступ игрока к этому персонажу?
-</p>
-<form method="post" action="{% url 'game:revoke' character.pk %}" data-confirm="Отозвать приглашение персонажа {{ character.name }}?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="button danger">Отозвать приглашение
-</button>
-</form>
-</dialog>
 </article>{% empty %}
 <div class="empty-state"><span aria-hidden="true">♙</span>
 <p>Пока никто не присоединился
 </p><a href="{% url 'game:characters' %}">Пригласить игроков →</a>
 </div>{% endfor %}
+</div>
+<form class="players-footer" method="post" action="{% url 'game:undo_last' %}" hx-post="{% url 'game:undo_last' %}" hx-target="#dialog-content" data-dialog>
+{% csrf_token %}{% include 'game/_request_id.html' %}
+<input type="hidden" name="entry_id" value="{{ undo_entry.pk|default:'' }}">
+<button class="button secondary small wide" type="submit"{% if not undo_entry %} disabled{% endif %}>Отменить последнее действие</button>
+</form>

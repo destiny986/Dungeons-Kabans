@@ -26,6 +26,7 @@ urlpatterns = access_patterns + [
     path('chat/send/',views.chat_send,name='chat_send'),
     path('master/chat/clear/',views.chat_clear,name='chat_clear'),
     path('master/rest/',views.rest,name='rest'),
+    path('master/undo/',views.undo_last,name='undo_last'),
     path('master/data/',data.index,name='data'),
     path('master/data/export/',data.export,name='export'),
     path('master/data/import/',data.upload,name='import_upload'),

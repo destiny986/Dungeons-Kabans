@@ -1,0 +1,17 @@
+<section class="confirmation{% if full_page %} paper narrow{% endif %}">
+<p class="eyebrow">Важное решение</p>
+<h2>Отменить последнее действие?</h2>
+<p>{{ result.message }}</p>
+<p>Изменения этой операции будут отменены у всех её получателей, а связанные записи удалены из чата. Вернуть отменённое действие этой кнопкой нельзя.</p>
+<form method="post" action="{% url 'game:undo_last' %}"{% if not full_page %} hx-post="{% url 'game:undo_last' %}" hx-target="#dialog-content"{% endif %}>
+{% csrf_token %}
+<input type="hidden" name="request_id" value="{{ request_id }}" data-operation-key="true">
+<input type="hidden" name="entry_id" value="{{ result.entry_id }}">
+<input type="hidden" name="confirmed" value="1">
+<div class="button-row">
+<button class="button danger" type="submit">Отменить действие</button>
+{% if full_page %}<a class="button secondary" href="{% url 'game:master' %}">Назад</a>
+{% else %}<button class="button secondary" type="button" data-close>Назад</button>{% endif %}
+</div>
+</form>
+</section>

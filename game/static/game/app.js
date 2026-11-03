@@ -284,11 +284,12 @@
     // Local player menus stay alive while open; their next poll catches up on close.
     if (target.querySelector('dialog[open]')) { event.detail.shouldSwap = false; return; }
     if (target.matches('[data-chat-scroll]')) scrollState.set(target.id, {top:target.scrollTop,bottom:target.scrollHeight-target.scrollTop-target.clientHeight < 45});
+    if (target.id === 'master-players') scrollState.set(target.id, {top:q('.players-list',target)?.scrollTop || 0,selector:'.players-list'});
     if (target.id === 'chat-recipient') target.dataset.savedValue = target.value;
   });
   document.addEventListener('htmx:oobAfterSwap', event => {
     const target = event.detail.target; if (!target) return;
-    if (scrollState.has(target.id)) { const state = scrollState.get(target.id); target.scrollTop = state.bottom ? target.scrollHeight : state.top; scrollState.delete(target.id); }
+    if (scrollState.has(target.id)) { const state = scrollState.get(target.id), scrolling = state.selector ? q(state.selector,target) : target; if (scrolling) scrolling.scrollTop = state.bottom ? scrolling.scrollHeight : state.top; scrollState.delete(target.id); }
     if (target.id === 'chat-recipient' && target.dataset.savedValue) { target.value = target.dataset.savedValue; delete target.dataset.savedValue; }
     qa('[data-filter]').forEach(applyFilter); markRead();
   });

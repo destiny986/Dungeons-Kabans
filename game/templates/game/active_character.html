@@ -1,6 +1,13 @@
 <section class="active-character">
-{% include 'game/portrait.html' %}<h2>{{ character.name }}</h2><p>{{ character.character_class }}</p>
-<p>Здоровье: {{ character.health_current }} / {{ character.health_max }}</p>
-<a class="button secondary" href="{% url 'game:character_edit' character.pk %}">Редактировать</a>
-<form method="post" action="{% url 'game:revoke' character.pk %}" hx-post="{% url 'game:revoke' character.pk %}" hx-target="#dialog-content" data-confirm="Отозвать приглашение персонажа?">{% csrf_token %}<button class="button danger">Отозвать доступ</button></form>
+<header class="active-character-heading">
+{% include 'game/portrait.html' %}
+<div><h2>{{ character.name }}</h2><p>{{ character.character_class }}</p>
+<p>Здоровье: {{ character.health_current }} / {{ character.health_max }}</p></div>
+</header>
+{% include 'game/_ability_grid.html' %}
+<div class="card-tools character-card-tools">
+<a class="button secondary small" href="{% url 'game:character_edit' character.pk %}">✎ Редактировать</a>
+<form method="post" action="{% url 'game:revoke' character.pk %}" hx-post="{% url 'game:revoke' character.pk %}" hx-target="#dialog-content" data-confirm="Отозвать все приглашения и завершить доступ к персонажу {{ character.name }} во всех браузерах?">
+{% csrf_token %}<button class="button secondary small" type="submit">Отозвать доступ</button></form>
+</div>
 </section>

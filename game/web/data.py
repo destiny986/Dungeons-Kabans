@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 from game.access import master_required
-from game.models import Character, Event, Item, Action, ImportJob
+from game.models import Character, Event, Item, Action, ImportJob, UndoEntry
 from .views import context
 
 MODELS = {'events':Event,'items':Item,'actions':Action,'characters':Character}
@@ -123,4 +123,5 @@ def wipe(request):
     with transaction.atomic():
         for category in set(categories):
             MODELS[category].objects.all().delete()
+        UndoEntry.objects.all().delete()
     return navigate(request,'game:data')

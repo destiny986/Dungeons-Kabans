@@ -22,12 +22,14 @@
 <header class="panel-heading">
 <h2>Игроки
 </h2>
-<form method="post" action="{% url 'game:rest' %}" hx-post="{% url 'game:rest' %}" hx-target="#dialog-content" data-dialog data-confirm="Восстановить здоровье и все ресурсы активных персонажей?">{% csrf_token %}{% include 'game/_request_id.html' %}
+<div class="players-heading-tools"><form method="post" action="{% url 'game:rest' %}" hx-post="{% url 'game:rest' %}" hx-target="#dialog-content" data-dialog data-confirm="Восстановить здоровье и все ресурсы активных персонажей?">{% csrf_token %}{% include 'game/_request_id.html' %}
 <button class="button secondary small" type="submit">☾ Отдых
 </button>
 </form>
+<a class="icon-button" href="{% url 'game:characters' %}" aria-label="Управление персонажами">+</a>
+</div>
 </header>
-<div id="master-players" class="panel-body">{% include 'game/master_players.html' %}
+<div id="master-players" class="panel-body players-body">{% include 'game/master_players.html' %}
 </div>
 </div>
 </section>

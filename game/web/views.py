@@ -8,7 +8,7 @@ from game.access import master_required, character_required, get_character_grant
 from game.catalog import CATALOG_MODELS, delete_catalog, delete_character
 from game.constants import ABILITY_CHOICES, SKILL_CHOICES, ACTIVATION_CHOICES
 from game.forms import CharacterForm, get_catalog_form, StaleEdit
-from game.models import Character
+from game.models import Character, UndoEntry
 from game.validators import normalize_search
 
 
@@ -24,7 +24,8 @@ def catalog_model(kind):
 
 def master_context(request):
     from game.chat import messages_for
-    result = context(is_master=True, characters=Character.objects.filter(is_active=True).select_related('portrait').order_by('name'), messages=messages_for(request), chat_clear_warning=CHAT_CLEAR_WARNING)
+    result = context(is_master=True, characters=Character.objects.filter(is_active=True).select_related('portrait').order_by('name'), messages=messages_for(request), chat_clear_warning=CHAT_CLEAR_WARNING,
+                     undo_entry=UndoEntry.objects.order_by('-pk').first())
     for kind, plural in [('event','events'),('item','items'),('action','actions')]:
         query = catalog_model(kind).objects.order_by('name')
         if kind != 'event':
@@ -32,6 +33,11 @@ def master_context(request):
         result[plural] = query.filter(search_text__contains=normalize_search(request.GET.get(plural+'_filter','')))
         result[plural+'_filter'] = request.GET.get(plural+'_filter','')
     return result
+
+
+def ability_rows(character):
+    return [{'label': label, 'value': character.abilities[key], 'save': character.saves[key]}
+            for key, label in ABILITY_CHOICES]
 
 
 def player_context(request, character):
@@ -56,7 +62,7 @@ def player_context(request, character):
         if group:
             sections.append({'label':label,'actions':group})
     return context(is_master=False, character=character, resources=resources, action_sections=sections,
-        ability_rows=[{'label':label,'value':character.abilities[key],'save':character.saves[key]} for key,label in ABILITY_CHOICES],
+        ability_rows=ability_rows(character),
         skill_rows=[{'label':label,'value':character.skills[key]} for key,label in SKILL_CHOICES],
         inventory=character.inventory.filter(quantity__gt=0).select_related('item__icon').order_by('item__name'),
         weapons=[weapon for weapon in character.weapons if weapon.get('name','').strip()],
@@ -204,7 +210,9 @@ def card(request,kind,pk):
     if kind == 'character':
         if not has_master_access(request):
             return access_denied(request)
-        return render(request,'game/active_character.html',context(character=get_object_or_404(Character,pk=pk),is_master=True))
+        selected = get_object_or_404(Character.objects.select_related('portrait'), pk=pk)
+        return render(request,'game/active_character.html',context(character=selected,is_master=True,
+            ability_rows=ability_rows(selected)))
     model = catalog_model(kind)
     obj = get_object_or_404(model,pk=pk)
     character = None
@@ -312,6 +320,26 @@ def catalog_send(request,kind,pk):
 def rest(request):
     from game.operations import rest_characters
     return operation(request,lambda key:rest_characters(request,key))
+
+
+@require_POST
+@master_required
+def undo_last(request):
+    from game.operations import undo_last as undo, undo_preview
+    if request.POST.get('confirmed') == '1':
+        return operation(request, lambda key: undo(request, request.POST.get('entry_id'), key))
+    try:
+        key = request_key(request)
+    except ValidationError as exc:
+        return render(request, 'game/operation_result.html', context(
+            result={'status': 'error', 'message': ' '.join(exc.messages)}), status=422)
+    result = undo_preview(request, request.POST.get('entry_id'))
+    if result['status'] != 'confirm':
+        return render(request, 'game/operation_result.html', context(result=result, request_id=key),
+                      status=409 if result['status'] == 'stale' else 422)
+    htmx = request.headers.get('HX-Request', '').lower() == 'true'
+    template = 'game/undo_confirm.html' if htmx else 'game/undo_confirm_page.html'
+    return render(request, template, context(result=result, request_id=key, full_page=not htmx))
 
 
 @require_POST

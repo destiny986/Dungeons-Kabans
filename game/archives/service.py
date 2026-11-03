@@ -23,7 +23,7 @@ from django.utils import timezone
 
 from game import media
 from game.models import (Event, Item, Action, Character, CharacterResource,
-                         InventoryEntry, CharacterAction, ImportJob, MediaAsset)
+                         InventoryEntry, CharacterAction, ImportJob, MediaAsset, UndoEntry)
 from game.validators import normalize_name
 from .schema import SCHEMAS, CHARACTER
 
@@ -468,6 +468,7 @@ def commit_import(job_id, session_key, choices):
                             for pk in action_ids: CharacterAction.objects.create(character=obj,action_id=pk)
                     for alias in group['aliases']: mappings[(kind,alias)]=obj.pk
                 job.preview={'summary':f'Импорт завершён. Изменено записей: {count}.','changed':count}
+                UndoEntry.objects.all().delete()
                 job.choices=choices
                 _finish(job,'complete')
                 media.release_assets(old_assets)
