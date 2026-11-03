@@ -51,6 +51,43 @@ def slot(char, level, current=1):
                                             current=current, maximum=max(1, current))
 
 
+@pytest.mark.parametrize('resource', ['none', 'spell_slot'])
+@pytest.mark.parametrize('new_recipient', [False, True])
+def test_duplicate_action_grant_notice_is_persisted(setup, resource, new_recipient):
+    op, char, _, action, _ = setup
+    action.resource = resource
+    action.slot_level = 2 if resource == 'spell_slot' else None
+    action.save()
+    other = Character.objects.create(name='Анна', is_active=True)
+    if not new_recipient:
+        CharacterAction.objects.create(character=other, action=action)
+    master = browser(master=True)
+    key = uuid.uuid4()
+    char.refresh_from_db()
+    revision = char.revision
+    result = op.grant_catalog(master, 'action', action.pk, [char.pk, other.pk], key)
+    expected = [{'id': str(char.pk), 'name': char.name}]
+    if not new_recipient:
+        expected.append({'id': str(other.pk), 'name': other.name})
+    assert result['status'] == 'ok'
+    assert result['action_name'] == action.name
+    assert result['duplicate_recipients'] == sorted(expected, key=lambda row: row['name'])
+    char.refresh_from_db()
+    assert char.revision == revision
+    assert CharacterAction.objects.filter(action=action).count() == 2
+    assert ChatMessage.objects.count() == int(new_recipient)
+    if new_recipient:
+        assert list(ChatMessage.objects.get().recipients.values_list('pk', flat=True)) == [other.pk]
+    else:
+        assert 'message_id' not in result
+    action.name = 'Переименовано'
+    action.save()
+    char.name = 'Новое имя'
+    char.save()
+    assert op.grant_catalog(master, 'action', action.pk, [other.pk, char.pk], key) == result
+    assert ChatMessage.objects.count() == int(new_recipient)
+
+
 def apply(data, key=None, **kwargs):
     op, char, req, action, _ = data
     return op.apply_action(req, char.pk, action.pk, key or uuid.uuid4(), **kwargs)

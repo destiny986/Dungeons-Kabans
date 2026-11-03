@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.html import escape
 
 from game.models import Action, Event, Item, MediaAsset
+from game.constants import ACTIVATION_SYMBOLS
 from game.test_ui_review import Controls, ui_master
 
 pytestmark = pytest.mark.django_db
@@ -45,7 +46,7 @@ def test_action_preview_metadata_matches_full_card(ui_master, resource, level):
     asset = MediaAsset.objects.create(digest='e' * 64, path='e.png', width=64, height=64)
     obj = Action.objects.create(name='Заклинание', description='Описание', icon=asset, activation='reaction', resource=resource, slot_level=level)
     html = preview_content(ui_master.get(reverse('game:catalog_edit', args=['action', obj.pk])))
-    assert '✧</span>' in html
+    assert f'{ACTIVATION_SYMBOLS["reaction"]}</span>' in html
     assert '>Реакция</span>' in html
     assert re.search(r'▣\s*<span[^>]*data-preview-select="resource"[^>]*>' + obj.get_resource_display(), html)
     assert 'data-preview-slot' in html

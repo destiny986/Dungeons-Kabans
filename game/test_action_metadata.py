@@ -2,10 +2,11 @@ import pytest
 from django.template.loader import render_to_string
 
 from game.models import Action
+from game.constants import ACTIVATION_SYMBOLS
 from game.test_ui_review import Controls
 
 
-@pytest.mark.parametrize('activation,symbol', [('action', '◯'), ('bonus', '△'), ('reaction', '✧'), ('free', '')])
+@pytest.mark.parametrize('activation,symbol', ACTIVATION_SYMBOLS.items())
 @pytest.mark.parametrize('resource', ['none', 'spell_slot', 'rage', 'wildshape'])
 @pytest.mark.parametrize('template,preview', [('game/_card_content.html', False), ('game/_card_content.html', True), ('game/import_card.html', False)])
 def test_action_metadata_visibility(activation, symbol, resource, preview, template):

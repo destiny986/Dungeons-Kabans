@@ -65,3 +65,12 @@ replays return the same acknowledgement. The response triggers refresh without
 closeDialog; other successful operations retain refresh/closeDialog behavior.
 Plain form action fallback retains its player-page redirect. Existing app.js
 centers confirmation fragments and refreshes the player OOB state; no JS change.
+
+Successful catalog action grants with `duplicate_recipients` render a notice in
+the existing dialog, triggering `refresh` without `closeDialog` (HTTP 200).
+The notice lists only skipped recipients and does not block grants to others.
+Without HTMX the same notice renders as a full page with a return link to the
+master page. Successful grants without duplicates retain refresh/closeDialog or
+redirect behavior. This notice also covers spells, which are catalog actions.
+
+POST `/master/chat/clear/` (`game:chat_clear`) requires master capability and CSRF. Without `confirmed=1` it renders the standard full-page confirmation with a retained/validated request UUID and no deletion. A confirmed request delegates to `clear_chat`, which rechecks master access atomically. Success uses the existing HTMX refresh/closeDialog response or redirects to the master page. GET is 405. Other open chats receive the empty history and cleared unread counts through normal polling.

@@ -1,4 +1,5 @@
-<form class="chat-composer" method="post" action="{% url 'game:chat_send' %}" hx-post="{% url 'game:chat_send' %}" hx-target="#dialog-content" data-chat-form>{% csrf_token %}{% include 'game/_request_id.html' %}{% if is_master %}
+<div class="chat-composer">
+<form method="post" action="{% url 'game:chat_send' %}" hx-post="{% url 'game:chat_send' %}" hx-target="#dialog-content" data-chat-form>{% csrf_token %}{% include 'game/_request_id.html' %}{% if is_master %}
 <label class="sr-only" for="chat-recipient">Получатель
 </label>
 <select name="recipient_id" id="chat-recipient" data-poll-include><option value="">Выберите получателя</option>{% for recipient in characters %}<option value="{{ recipient.pk }}">{{ recipient.name }}</option>{% endfor %}
@@ -11,5 +12,13 @@
 </textarea>
 <button class="button" type="submit" aria-label="Отправить сообщение">↑
 </button>
-</div><span class="help">Enter — новая строка · Ctrl + Enter — отправить</span>
+</div>
 </form>
+<div class="chat-footer">
+<span class="help">Enter — новая строка · Ctrl + Enter — отправить</span>
+{% if is_master %}<form method="post" action="{% url 'game:chat_clear' %}" hx-post="{% url 'game:chat_clear' %}" hx-target="#dialog-content" data-confirm="{{ chat_clear_warning }}" data-confirm-field="confirmed">{% csrf_token %}{% include 'game/_request_id.html' %}
+<input type="hidden" name="confirmed" value="">
+<button class="button secondary small" type="submit" aria-label="Очистить чат">⦸ Очистить чат</button>
+</form>{% endif %}
+</div>
+</div>

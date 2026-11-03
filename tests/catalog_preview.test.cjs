@@ -18,7 +18,7 @@ const image = {dataset:{}, hidden:true};
 const activationBadge = {hidden:false}, resourceBadge = {hidden:false};
 const symbol = {textContent:''};
 const metadata = {
-  hidden:false, dataset:{activationSymbols:JSON.stringify({action:'◯',bonus:'△',reaction:'✧',free:''})},
+  hidden:false, dataset:{activationSymbols:JSON.stringify({action:'◯',bonus:'△',reaction:'☆',free:''})},
   querySelector: selector => ({'[data-action-badge="activation"]':activationBadge,
     '[data-action-badge="resource"]':resourceBadge, '[data-preview-activation-symbol]':symbol}[selector]),
 };
@@ -49,12 +49,12 @@ function dispatch(name, target = {}) {
   listeners[name].forEach(listener => listener({target}));
 }
 dispatch('input');
-assert.equal(metadataText(), '✧ Реакция ▣ Ячейка заклинания · 7 уровень');
+assert.equal(metadataText(), '☆ Реакция ▣ Ячейка заклинания · 7 уровень');
 assert.equal(description.textContent, 'Первая строка\n<Вторая строка>');
 for (const [value, label] of [['none','Нет'], ['rage','Ярость'], ['wildshape','Дикий облик']]) {
   fields.resource = {value, selectedOptions:[{textContent:label}]};
   dispatch('change');
-  assert.equal(metadataText(), value === 'none' ? '✧ Реакция' : `✧ Реакция ▣ ${label}`);
+  assert.equal(metadataText(), value === 'none' ? '☆ Реакция' : `☆ Реакция ▣ ${label}`);
 }
 fields.resource = {value:'spell_slot', selectedOptions:[{textContent:'Ячейка заклинания'}]};
 fields.activation = {value:'bonus', selectedOptions:[{textContent:'Бонусное действие'}]};

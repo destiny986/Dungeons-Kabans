@@ -23,7 +23,7 @@ def catalog_model(kind):
 
 def master_context(request):
     from game.chat import messages_for
-    result = context(is_master=True, characters=Character.objects.filter(is_active=True).select_related('portrait').order_by('name'), messages=messages_for(request))
+    result = context(is_master=True, characters=Character.objects.filter(is_active=True).select_related('portrait').order_by('name'), messages=messages_for(request), chat_clear_warning=CHAT_CLEAR_WARNING)
     for kind, plural in [('event','events'),('item','items'),('action','actions')]:
         query = catalog_model(kind).objects.order_by('name')
         if kind != 'event':
@@ -72,6 +72,28 @@ def master(request):
 @master_required
 def master_poll(request):
     return render(request,'game/master_poll.html',master_context(request))
+
+
+CHAT_CLEAR_WARNING = ('Безвозвратно удалить всю историю чата у мастера и всех игроков, '
+                      'включая сообщения, события и записи игровых действий? Предметы, '
+                      'изученные действия и заклинания, здоровье и ресурсы сохранятся')
+
+
+@require_POST
+@master_required
+def chat_clear(request):
+    from game.operations import clear_chat
+    if request.POST.get('confirmed') != '1':
+        try:
+            key = request_key(request)
+        except ValidationError as exc:
+            return render(request, 'game/operation_result.html', context(
+                result={'status': 'error', 'message': ' '.join(exc.messages)}), status=422)
+        return render(request, 'game/confirm.html', context(
+            title='Очистить чат?', message=CHAT_CLEAR_WARNING, action_url=request.path,
+            button_label='Очистить чат', request_id=key,
+            hidden_fields=[{'name': 'confirmed', 'value': '1'}]))
+    return operation(request, lambda key: clear_chat(request, key))
 
 
 @require_GET
@@ -201,6 +223,13 @@ def operation(request,callback,*,character=None,action=None):
         result = {'status':'error','message':' '.join(exc.messages)}
     status = {'error':422,'stale':409,'offer':409}.get(result.get('status'),200)
     if result.get('status') == 'ok':
+        if result.get('duplicate_recipients'):
+            htmx = request.headers.get('HX-Request','').lower() == 'true'
+            template = 'game/grant_notice.html' if htmx else 'game/grant_notice_page.html'
+            response = render(request,template,context(result=result,full_page=not htmx))
+            if htmx:
+                response['HX-Trigger'] = '{"refresh":true}'
+            return response
         if action is not None and request.headers.get('HX-Request','').lower() == 'true':
             response = render(request,'game/operation_result.html',context(result=result,character=character,action=action))
             response['HX-Trigger'] = '{"refresh":true}'

@@ -1,6 +1,11 @@
 {% extends 'game/base.html' %}{% block title %}Стол мастера{% endblock %}{% block main_class %}page worktable{% endblock %}{% block nav %}<span class="role-label">Мастер</span>
 <button type="button" class="button secondary small" data-open="settings-dialog">⚙ <span>Настройки</span>
 </button>{% endblock %}{% block content %}
+<noscript><style>
+.grid-stack{display:flex;flex-direction:column;gap:18px;height:auto}
+.grid-stack>.grid-stack-item{position:relative;inset:auto;width:100%;height:auto;min-height:0}
+.grid-stack>.grid-stack-item>.grid-stack-item-content{position:relative;inset:auto;overflow:visible}
+</style></noscript>
 <div class="page-heading">
 <div>
 <p class="eyebrow">За ширмой
@@ -28,7 +33,7 @@
 </section>
 <section class="grid-stack-item" gs-id="chat" gs-x="3" gs-y="0" gs-w="5" gs-h="10">
 <div class="grid-stack-item-content panel chat-panel">
-<header class="panel-heading">
+<header class="panel-heading chat-heading">
 <h2>Переписка
 </h2><span class="panel-caption">Мастер ↔ игроки</span>
 </header>

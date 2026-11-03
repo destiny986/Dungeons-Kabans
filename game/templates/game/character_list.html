@@ -19,7 +19,7 @@
 </p>
 <div class="card-tools"><a class="button secondary small" href="{% url 'game:character_edit' character.pk %}" aria-label="Редактировать {{ character.name }}">✎ Изменить</a>
 <form method="post" action="{% url 'game:character_delete' character.pk %}" data-confirm="Удалить персонажа {{ character.name }}, его историю и доступы?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="icon-button danger" aria-label="Удалить {{ character.name }}">⌫
+<button class="icon-button danger" aria-label="Удалить {{ character.name }}">⦸
 </button>
 </form>
 </div>

@@ -76,6 +76,40 @@ def png_upload():
     stream = io.BytesIO(); Image.new('RGBA',(4,4),'red').save(stream,format='PNG')
     return SimpleUploadedFile('icon.png',stream.getvalue(),content_type='image/png')
 
+
+@pytest.mark.parametrize('htmx', [False, True])
+@pytest.mark.parametrize('resource', ['none', 'spell_slot'])
+def test_duplicate_action_send_notice(master, htmx, resource):
+    from game.models import Action, CharacterAction, MediaAsset
+    icon = MediaAsset.objects.create(digest='d' * 64, path='d.png', width=1, height=1)
+    action = Action.objects.create(name='Огонь <script>', icon=icon, resource=resource,
+                                   slot_level=2 if resource == 'spell_slot' else None)
+    owner = Character.objects.create(name='Анна <img>', is_active=True)
+    new = Character.objects.create(name='Борис', is_active=True)
+    CharacterAction.objects.create(character=owner, action=action)
+    url = reverse('game:catalog_send', args=['action', action.pk])
+    data = {'recipients': [owner.pk, new.pk], 'request_id': uuid.uuid4()}
+    headers = {'HTTP_HX_REQUEST': 'true'} if htmx else {}
+    response = master.post(url, data, **headers)
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert 'Уже есть у персонажей' in body
+    assert '«Огонь &lt;script&gt;» уже есть у персонажей: Анна &lt;img&gt;.' in body
+    assert 'Борис' not in body
+    assert 'Понятно' in body
+    if htmx:
+        assert response.headers['HX-Trigger'] == '{"refresh":true}'
+        assert 'data-close' in body
+        assert '<!doctype' not in body.lower()
+    else:
+        assert '<!doctype html>' in body.lower()
+        assert f'href="{reverse("game:master")}"' in body
+    message = ChatMessage.objects.get()
+    assert list(message.recipients.values_list('pk', flat=True)) == [new.pk]
+    assert CharacterAction.objects.filter(action=action).count() == 2
+    assert master.post(url, data, **headers).context['result'] == response.context['result']
+    assert ChatMessage.objects.count() == 1
+
 def test_full_http_catalog_character_operations_archive(master,settings,tmp_path):
     from game.constants import ABILITY_CHOICES,SKILL_CHOICES
     from game.models import Item,Action,CharacterResource,InventoryEntry

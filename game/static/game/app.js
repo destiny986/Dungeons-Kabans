@@ -248,7 +248,12 @@
     if (form.dataset.confirm && !confirmed.has(form)) {
       event.preventDefault(); event.stopImmediatePropagation();
       const confirmation = document.createElement('dialog'); confirmation.setAttribute('aria-label','Подтверждение'); confirmation.append(q('#confirm-template').content.cloneNode(true)); q('[data-confirm-text]',confirmation).textContent = form.dataset.confirm; document.body.append(confirmation);
-      q('[data-confirm-yes]',confirmation).addEventListener('click', () => { confirmed.add(form); confirmation.close(); form.requestSubmit(event.submitter || undefined); confirmed.delete(form); });
+      q('[data-confirm-yes]',confirmation).addEventListener('click', () => {
+        const field = form.dataset.confirmField ? form.elements.namedItem(form.dataset.confirmField) : null;
+        if (field) field.value = '1';
+        confirmed.add(form); confirmation.close(); form.requestSubmit(event.submitter || undefined); confirmed.delete(form);
+        if (field) field.value = '';
+      });
       confirmation.addEventListener('close', () => confirmation.remove(), {once:true}); openDialog(confirmation, null, event.submitter || form); return;
     }
     const key = q('[name=request_id]',form);

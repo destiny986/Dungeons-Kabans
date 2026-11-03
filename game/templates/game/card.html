@@ -5,7 +5,7 @@
 <div class="card-tools catalog-card-tools"><a class="button secondary small" href="{% url 'game:catalog_edit' kind object.pk %}" aria-label="Редактировать {{ object.name }}">✎ Редактировать</a>
 {% include 'game/_catalog_send.html' %}
 <form action="{% url 'game:catalog_delete' kind object.pk %}" method="post" hx-post="{% url 'game:catalog_delete' kind object.pk %}" hx-target="#dialog-content" data-confirm="Удалить «{{ object.name }}» из игры и всех связанных записей?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="button secondary small" type="submit">⌫ Удалить
+<button class="button secondary small" type="submit">⦸ Удалить
 </button>
 </form>
 </div>

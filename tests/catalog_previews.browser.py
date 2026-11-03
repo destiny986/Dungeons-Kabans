@@ -18,6 +18,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from game.forms import get_catalog_form
 from game.models import Action, Event, Item, MediaAsset
+from game.constants import ACTIVATION_SYMBOLS
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
@@ -63,7 +64,7 @@ with sync_playwright() as p:
             if kind != 'event':
                 assert preview.locator('img').evaluate('img => img.complete && img.naturalWidth === 64')
             if kind == 'action':
-                assert preview.locator('.action-meta').inner_text() == '✧ Реакция\n▣ Ячейка заклинания · 7 уровень'
+                assert preview.locator('.action-meta').inner_text() == f'{ACTIVATION_SYMBOLS["reaction"]} Реакция\n▣ Ячейка заклинания · 7 уровень'
                 for resource in ('none', 'rage', 'wildshape'):
                     page.locator('[name=resource]').select_option(resource)
                     assert not preview.locator('[data-preview-slot]').is_visible()

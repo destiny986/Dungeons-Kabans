@@ -232,6 +232,7 @@ def grant_catalog(request, kind, object_id, character_ids, request_id):
     if obj is None or len(characters) != len(ids):
         raise DomainError('Запись или получатель недоступны.')
     recipients = []
+    duplicate_recipients = []
     for character in characters:
         if kind == 'item':
             entry, created = InventoryEntry.objects.get_or_create(character=character, item=obj)
@@ -242,11 +243,15 @@ def grant_catalog(request, kind, object_id, character_ids, request_id):
         elif kind == 'action':
             _, created = CharacterAction.objects.get_or_create(character=character, action=obj)
             if not created:
+                duplicate_recipients.append({'id': str(character.pk), 'name': character.name})
                 continue
         if kind != 'event':
             _bump(character)
         recipients.append(character.pk)
     extra = {}
+    if duplicate_recipients:
+        extra.update(action_name=obj.name, duplicate_recipients=sorted(
+            duplicate_recipients, key=lambda row: (row['name'], row['id'])))
     if recipients:
         message = create_message(recipients=recipients, kind={'event': 'event', 'item': 'item_grant',
             'action': 'action_grant'}[kind], from_master=True,
@@ -308,6 +313,17 @@ def send_chat(request, *, text, character_id, as_master, request_id):
     message = create_message(recipients=[character_id], kind='text', text=text, from_master=as_master,
                             sender_character_id=None if as_master else character_id)
     return _complete(scope, key, fingerprint, message_id=message.pk)
+
+
+@_service
+def clear_chat(request, request_id):
+    scope = _master(request)
+    key, fingerprint, replay = _begin(scope, request_id, {'kind': 'chat_clear'})
+    if replay is not None:
+        return replay
+    ChatMessage.objects.all().delete()
+    CharacterGrant.objects.exclude(last_read_message_id=0).update(last_read_message_id=0)
+    return _complete(scope, key, fingerprint)
 
 
 @_service

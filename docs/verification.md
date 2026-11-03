@@ -111,3 +111,31 @@ API, модели и vendor-файлы не менялись. Commit, push и д
 - Django check, makemigrations --check --dry-run, Node syntax/import_bulk/catalog_preview и git diff --check прошли. Node вызван по полному пути локального runtime Codex.
 - Chrome: catalog_previews.browser.py на 1440/390 px, включая восстановление плашек после ошибочного POST; action_icons.browser.py на 1440/390/320 px, включая фильтр free и отсутствие обеих плашек. Снимки просмотрены в .browser-artifacts/. Браузерные проверки не используют рабочую базу.
 - Независимое ревью области изменений не выявило замечаний. Рабочие данные, commit и push не затрагивались; миграция включена в исходники, к рабочей БД не применялась.
+
+## Отображение и очистка чата — 3 ноября 2026
+
+- В чате мастера объединены отправитель и получатели исходящих сообщений, убрана серая строка; заголовки чата игрока сохранены. Оба чата используют общий шаблон свернутого события и символы активации из `ACTIVATION_SYMBOLS`, включая текущую реакцию ☆.
+- Очистка всей истории доступна только мастеру после подтверждения, с POST/CSRF и атомарной проверкой прав. Сохраняются инвентарь, изученные действия/заклинания, здоровье, ресурсы, каталог и журнал идемпотентности. Проверены повтор очистки после нового сообщения и повтор выдачи предмета после очистки.
+- Финальный `python -m pytest -q`: **278 passed, 3 skipped, 30 subtests passed**; одно предупреждение существующего теста ZIP о повторном `events.json`.
+- Django check, отсутствие миграций, JavaScript syntax/import_bulk/catalog_preview и `git diff --check`: успешно. Node использован из `.venv/Lib/site-packages/playwright/driver/node.exe`.
+- Chrome: `tests/chat.browser.py` прошёл на 1440/390 px — заголовки, символы, открытие событий, подтверждение/отмена, обновление двух чатов и сохранение черновиков/получателя. Отдельно проверена очистка и отмена без JavaScript; для доступности настольной страницы без GridStack добавлено вертикальное расположение панелей. Снимки чата и подтверждения просмотрены в `.browser-artifacts/chat/`.
+- `tests/catalog_previews.browser.py`: все шесть сочетаний action/event/item на 1440/390 px прошли. Независимое ревью не выявило дефектов. Все новые проверки используют отдельные тестовые БД и локальные артефакты, рабочая история чата не очищалась. Миграции, commit, push и доставка не выполнялись.
+
+## Нижняя панель чата и расходы ресурсов — 3 ноября 2026
+
+- «⦸ Очистить чат» перенесена вниз справа от подсказки клавиш и оформлена нейтральной кнопкой, как удаление события. «Мастер ↔ игроки» возвращена вправо в заголовок. Формы отправки и очистки разделены внутри общего контейнера; пустое сообщение не блокирует очистку.
+- Общий шаблон расхода показывает «Потрачена ячейка заклинаний N уровня», «Потрачена ячейка ярости» и «Потрачена ячейка дикого облика». Используются сохранённые метаданные, включая прежние сообщения без вида ресурса и фактический повышенный уровень; изменение действия в каталоге не меняет историю расхода.
+- `python -m pytest -q`: **301 passed, 3 skipped, 30 subtests passed**. Одно предупреждение существующего ZIP-теста о повторном `events.json`. В целевом модуле чата — 31 успешная проверка.
+- Django check, отсутствие миграций, JavaScript syntax/import_bulk/catalog_preview и `git diff --check` прошли. Node использован из `.venv/Lib/site-packages/playwright/driver/node.exe`.
+- `tests/chat.browser.py`: Chrome 1440/390/320 px; геометрия заголовка и нижней строки, соответствие цветов/рамки кнопке удаления события, все расходы в обоих чатах, пустое поле, отмена/подтверждение, обновление опросом, сохранение черновиков и получателя, режим без JavaScript. Скриншоты в `.browser-artifacts/chat/` просмотрены, перекрытий нет.
+- Независимое ревью не выявило дефектов; замечание о прежнем расположении кнопки в документации исправлено. Серверные операции списания, API и схема не менялись. Рабочая база, история чата, commit, push и доставка не затрагивались.
+
+
+## 2026-11-03: Duplicate action/spell grant notice
+
+- Added a successful, persisted duplicate-recipient snapshot to action grants. Existing owners receive neither a duplicate membership nor a false log; other recipients receive the action normally.
+- Master sees one application dialog with escaped action/character names and a Close acknowledgement. Plain POST renders a full page with a return link. No schema or dependency changes.
+- RED: 8 new parametrized checks failed on missing notice/result fields. GREEN: operations/web modules, 41 passed.
+- Full pytest: 309 passed, 3 skipped, 30 subtests passed; existing duplicate ZIP entry warning only. Django check, makemigrations --check --dry-run, app.js syntax, import_bulk and git diff --check passed.
+- tests/duplicate_action.browser.py: real Chrome at 1440/390/320 px, mixed recipients, escaped names, dialog close and no-JavaScript fallback passed on an isolated database under .browser-artifacts/duplicate-action/. Desktop/mobile screenshots inspected.
+- Independent review of this notice change found no issues. Parallel unrelated workspace changes were preserved. No commit, push or deployment performed.

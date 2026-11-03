@@ -1,0 +1,7 @@
+<section class="confirmation{% if full_page %} paper narrow{% endif %}" data-result="ok">
+<p class="eyebrow">Результат выдачи</p>
+<h2>Уже есть у персонажей</h2>
+<p>«{{ result.action_name }}» уже есть у персонажей: {% for recipient in result.duplicate_recipients %}{{ recipient.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+{% if full_page %}<a class="button" href="{% url 'game:master' %}">Понятно</a>
+{% else %}<button class="button" type="button" data-close>Понятно</button>{% endif %}
+</section>

@@ -23,6 +23,7 @@ urlpatterns = access_patterns + [
     path('player/<uuid:pk>/item/<uuid:item_id>/remove/',views.remove_item,name='remove_item'),
     path('player/<uuid:pk>/read/',views.chat_read,name='chat_read'),
     path('chat/send/',views.chat_send,name='chat_send'),
+    path('master/chat/clear/',views.chat_clear,name='chat_clear'),
     path('master/rest/',views.rest,name='rest'),
     path('master/data/',data.index,name='data'),
     path('master/data/export/',data.export,name='export'),

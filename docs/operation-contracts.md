@@ -40,13 +40,22 @@ confirmation returns `stale`: deliberately apply again to use it. Edited action
 or character revisions invalidate old proposals. Manual upcasting is rejected.
 
 Actions only spend resources and record use; they do not calculate damage/effects.
-Action use metadata records actual slot level. System text is neutral and catalog
+Action use metadata records the consumed resource kind and actual slot level
+(zero for rage/wildshape). Chat expense notes use this persisted metadata rather
+than the live action resource, including after catalog edits. System text is neutral and catalog
 references remain live. Each player log has only its own recipient. Item grants
 add one per unique recipient; known action memberships create neither duplicate
 membership nor false grant log. A grant operation is atomic across all active
 recipients. Rest includes every active character, including offline browsers,
 restores health exactly to maximum and only enabled resources. Each changed
 character gets a private rest summary with typed before/after metadata.
+
+When an action grant skips existing memberships, its successful result also
+contains `action_name` and `duplicate_recipients`, a list of `{id, name}` objects
+with string UUIDs, sorted by name then UUID. These are persisted snapshots:
+replaying the request returns the same notice even after renaming or further
+grants. Recipients without the action still receive it normally. With no skipped
+memberships these fields are absent; item and event results are unchanged.
 
 `game.chat.messages_for(request, character_id=None)` is master-global only when
 the argument is absent. A character argument always requires that browser's own
@@ -61,3 +70,5 @@ Master free text targets exactly one active character through `character_id`
 (HTTP wrappers translate `recipient_id`). Player free text targets only its own
 character. Text is trimmed and limited to 10000 characters. Successful free-text
 results include `message_id`; player messages never increment unread counts.
+
+`clear_chat(request, request_id)` is a master-only, atomic, idempotent operation. It deletes all ChatMessage rows and cascading MessageRecipient rows and resets every CharacterGrant read cursor to zero. It creates no chat message and does not change characters, resources, inventory, learned actions/spells, catalog entries or browser capabilities. Operation rows remain: replaying a successful clear UUID does not delete messages created later, and replaying prior game operations cannot reapply their effects or recreate deleted logs. A fresh clear removes history present when its transaction executes. Received-event card access disappears with its receipt; catalog events remain available to the master for sending again.
