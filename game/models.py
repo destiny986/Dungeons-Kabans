@@ -253,6 +253,14 @@ class Operation(UUIDModel):
         constraints = [models.UniqueConstraint(fields=["scope", "key"], name="unique_operation_scope_key")]
 
 
+class UndoEntry(JSONValidationMixin, models.Model):
+    """Bounded reversal data; durable idempotency belongs to Operation."""
+    operation = models.OneToOneField(Operation, on_delete=models.CASCADE, related_name='undo_entry')
+    kind = models.CharField(max_length=30)
+    description = models.TextField()
+    payload = models.JSONField(default=dict, validators=[validate_json_dict])
+
+
 class ImportJob(UUIDModel):
     session_key = models.CharField(max_length=40, db_index=True)
     status = models.CharField(max_length=10, choices=IMPORT_STATUSES, default="staged")

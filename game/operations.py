@@ -13,8 +13,9 @@ from django.db.models import F, Max
 
 from .access import get_character_grant, has_master_access
 from .chat import create_message
+from . import undo as undo_history
 from .models import (Action, Character, CharacterAction, CharacterGrant, CharacterResource,
-                     ChatMessage, Event, InventoryEntry, Item, Operation)
+                     ChatMessage, Event, InventoryEntry, Item, Operation, UndoEntry)
 
 PROPOSAL_SALT = 'game.action-slot-consent.v1'
 
@@ -82,9 +83,11 @@ def _begin(scope, request_id, intent):
     return key, fingerprint, old.result if old else None
 
 
-def _complete(scope, key, fingerprint, **extra):
+def _complete(scope, key, fingerprint, *, undo=None, **extra):
     result = {'status': 'ok', 'message': 'Готово.', **extra}
-    Operation.objects.create(scope=scope, key=key, fingerprint=fingerprint, result=result)
+    operation = Operation.objects.create(scope=scope, key=key, fingerprint=fingerprint, result=result)
+    if undo is not None:
+        undo_history.record(operation, **undo)
     return result
 
 
@@ -158,6 +161,7 @@ def apply_action(request, character_id, action_id, request_id, confirmed_level=N
     elif confirming:
         raise DomainError('Подтверждение не требуется для этого действия.')
     metadata = {}
+    resource_before = resource.current if resource else None
     if resource:
         changed = CharacterResource.objects.filter(pk=resource.pk, current__gte=1).update(current=F('current') - 1)
         if not changed:
@@ -167,7 +171,16 @@ def apply_action(request, character_id, action_id, request_id, confirmed_level=N
     message = create_message(recipients=[grant.character_id], kind='action_use',
         sender_character_id=grant.character_id, action=action, from_master=False,
         text='Применено действие.', metadata=metadata)
-    return _complete(scope, key, fingerprint, message_id=message.pk, **metadata)
+    effect = undo_history.change(grant.character, 'resource' if resource else 'log',
+        **({'object': str(action.pk), 'resource_id': resource.pk, 'resource': resource.kind, 'level': resource.level,
+            'maximum': resource.maximum, 'before': resource_before, 'after': resource_before - 1} if resource else {}))
+    expense = ('; вернуть ячейку заклинаний ' + str(resource.level) + ' уровня'
+               if resource and resource.kind == 'spell_slot' else
+               '; вернуть ячейку ярости' if resource and resource.kind == 'rage' else
+               '; вернуть ячейку дикого облика' if resource else '; без расхода ресурса')
+    return _complete(scope, key, fingerprint, message_id=message.pk, **metadata, undo={
+        'kind': 'action_use', 'description': f'Применение «{action.name}»: {grant.character.name}{expense}.',
+        'effects': [effect], 'message_ids': [message.pk]})
 
 
 @_service
@@ -201,6 +214,7 @@ def remove_item(request, character_id, item_id, quantity, request_id):
     entry = InventoryEntry.objects.filter(character_id=grant.character_id, item_id=item_id).first()
     if entry is None or entry.quantity < quantity:
         raise DomainError('Недостаточно предметов.')
+    before = entry.quantity
     if entry.quantity == quantity:
         entry.delete()
     else:
@@ -209,7 +223,10 @@ def remove_item(request, character_id, item_id, quantity, request_id):
     message = create_message(recipients=[grant.character_id], kind='item_remove',
         sender_character_id=grant.character_id, item_id=item_id, from_master=False,
         text='Удалён предмет из инвентаря.', metadata={'quantity': quantity})
-    return _complete(scope, key, fingerprint, message_id=message.pk)
+    return _complete(scope, key, fingerprint, message_id=message.pk, undo={
+        'kind': 'item_remove', 'description': f'Удаление «{entry.item.name}»: {grant.character.name}, {quantity} шт.',
+        'effects': [undo_history.change(grant.character, 'inventory', object=str(item_id),
+                                       before=before, after=before - quantity)], 'message_ids': [message.pk]})
 
 
 @_service
@@ -251,6 +268,7 @@ def grant_catalog(request, kind, object_id, character_ids, request_id, *, quanti
         raise DomainError('Запись или получатель недоступны.')
     recipients = []
     duplicate_recipients = []
+    effects, descriptions, message_ids = [], [], []
     for character in characters:
         if kind == 'item':
             quantity = amounts[str(character.pk)]
@@ -260,6 +278,7 @@ def grant_catalog(request, kind, object_id, character_ids, request_id, *, quanti
                 if entry.quantity > _maximum(InventoryEntry, 'quantity') - quantity:
                     raise DomainError('Достигнут предел количества предметов.')
                 InventoryEntry.objects.filter(pk=entry.pk).update(quantity=F('quantity') + quantity)
+            before = 0 if created else entry.quantity
         elif kind == 'action':
             _, created = CharacterAction.objects.get_or_create(character=character, action=obj)
             if not created:
@@ -267,7 +286,10 @@ def grant_catalog(request, kind, object_id, character_ids, request_id, *, quanti
                 continue
         if kind != 'event':
             _bump(character)
+            effects.append(undo_history.change(character, 'inventory' if kind == 'item' else 'membership',
+                object=str(obj.pk), **({'before': before, 'after': before + quantity} if kind == 'item' else {})))
         recipients.append(character.pk)
+        descriptions.append(character.name + (f' — {amounts[str(character.pk)]} шт.' if kind == 'item' else ''))
     extra = {}
     if duplicate_recipients:
         extra.update(action_name=obj.name, duplicate_recipients=sorted(
@@ -277,13 +299,48 @@ def grant_catalog(request, kind, object_id, character_ids, request_id, *, quanti
             message = create_message(recipients=[recipient], kind='item_grant', from_master=True,
                 text='Выдан предмет.', item=obj, metadata={'quantity': amounts[str(recipient)]})
             extra.setdefault('message_id', message.pk)
+            message_ids.append(message.pk)
     elif recipients:
         message = create_message(recipients=recipients, kind={'event': 'event', 'item': 'item_grant',
             'action': 'action_grant'}[kind], from_master=True,
             text={'event': 'Отправлено событие.', 'item': 'Выдан предмет.', 'action': 'Выдано действие.'}[kind],
             **{kind: obj})
         extra['message_id'] = message.pk
-    return _complete(scope, key, fingerprint, **extra)
+        message_ids.append(message.pk)
+    title = {'item': 'Выдача предмета', 'action': 'Выдача действия/заклинания', 'event': 'Отправка события'}[kind]
+    return _complete(scope, key, fingerprint, **extra, undo={
+        'kind': kind + '_grant', 'description': f'{title} «{obj.name}»: ' + ', '.join(descriptions) + '.',
+        'effects': effects, 'message_ids': message_ids} if message_ids else None)
+
+
+def _undo_target(entry_id):
+    entry_id = _integer(entry_id, 1, 9223372036854775807)
+    entry = UndoEntry.objects.order_by('-pk').first()
+    if entry is None or entry.pk != entry_id:
+        raise DomainError('Последнее действие изменилось или история пуста. Откройте подтверждение заново.', 'stale')
+    return entry
+
+
+@_service
+def undo_preview(request, entry_id):
+    _master(request)
+    entry = _undo_target(entry_id)
+    return {'status': 'confirm', 'entry_id': entry.pk, 'message': entry.description}
+
+
+@_service
+def undo_last(request, entry_id, request_id):
+    scope = _master(request)
+    entry_id = _integer(entry_id, 1, 9223372036854775807)
+    key, fingerprint, replay = _begin(scope, request_id, {'kind': 'undo', 'entry': entry_id})
+    if replay is not None:
+        return replay
+    entry = _undo_target(entry_id)
+    try:
+        undo_history.restore(entry)
+    except undo_history.UndoConflict as exc:
+        raise DomainError(str(exc), 'stale') from None
+    return _complete(scope, key, fingerprint, message='Последнее действие отменено.')
 
 
 @_service
