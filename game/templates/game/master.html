@@ -14,7 +14,7 @@
 </h1>
 </div><span id="connection-status" class="sr-only">Обновление каждые 5 секунд</span>
 </div>
-<div id="poller" hx-get="{% url 'game:master_poll' %}" hx-trigger="every 5s [document.visibilityState === 'visible'], refresh" hx-swap="none" hx-include="[data-poll-include]" aria-hidden="true">
+<div id="poller" hx-get="{% url 'game:master_poll' %}" hx-trigger="every 5s [document.visibilityState === 'visible'], refresh[document.visibilityState === 'visible']" hx-swap="none" hx-include="[data-poll-include]" aria-hidden="true">
 </div>
 <div class="grid-stack" id="master-grid">
 <section class="grid-stack-item" gs-id="players" gs-x="0" gs-y="0" gs-w="3" gs-h="5">
@@ -53,4 +53,4 @@
 </nav>
 <button type="button" class="text-button" data-reset-layout>Сбросить расположение секций
 </button>
-</dialog>{% endblock %}
+</dialog>{% load static %}<script defer src="{% static 'game/master_activity.js' %}" data-activity-url="{% url 'game:chat_activity' %}"></script>{% endblock %}

@@ -1,8 +1,19 @@
 """Receipt-scoped private chat queries; master access never implies a player grant."""
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Max
 
 from .access import get_character_grant, has_master_access
 from .models import ChatMessage, MessageRecipient
+
+
+def master_activity(request, after):
+    """One snapshot of relevant incoming activity; never changes read cursors."""
+    if not has_master_access(request):
+        raise PermissionDenied
+    result = ChatMessage.objects.filter(
+        from_master=False, kind__in=('text', 'action_use', 'item_remove'),
+        id__gt=after).aggregate(count=Count('id'), max_id=Max('id'))
+    return {'count': result['count'], 'max_id': str(result['max_id'] or 0)}
 
 
 def messages_for(request, character_id=None):

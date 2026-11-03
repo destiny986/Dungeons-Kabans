@@ -23,6 +23,19 @@ def chat_html(messages, character=None):
     return render_to_string('game/chat_messages.html', {'messages': messages, 'character': character})
 
 
+@pytest.mark.parametrize('quantity', [None, 4])
+@pytest.mark.parametrize('as_player', [False, True])
+def test_item_grant_recorded_quantity_and_legacy_history(quantity, as_player):
+    hero = Character.objects.create(name='Получатель')
+    message = create_message(recipients=[hero.pk], from_master=True, kind='item_grant',
+                             text='Выдан предмет.', metadata={} if quantity is None else {'quantity': quantity})
+    html = chat_html([message], hero if as_player else None)
+    assert 'Выдан предмет.' in html
+    assert ('Количество: 4' in html) == (quantity is not None)
+    if quantity is None:
+        assert 'Количество:' not in html
+
+
 def test_chat_headers_and_escaped_recipients():
     hero = Character.objects.create(name='Кабас <маг>')
     other = Character.objects.create(name='Друг')

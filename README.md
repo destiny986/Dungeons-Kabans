@@ -95,9 +95,17 @@ PUBLIC_BASE_URL; производственная конфигурация оп�
 .\.venv\Scripts\python.exe manage.py check
 .\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
 node --check game/static/game/app.js
+node --check game/static/game/master_activity.js
 node tests/import_bulk.test.cjs
 node tests/catalog_preview.test.cjs
+node tests/chat_activity.test.cjs
 ```
+
+Индикацию новых записей во вкладке мастера проверяет
+`.\.venv\Scripts\python.exe tests/chat_activity.browser.py`: Chrome, отдельная
+тестовая база и сессии мастера/игрока, ширины 1440/390 px. Нужен Playwright;
+в headless-режиме событие видимости задаётся тестом, сетевые запросы и таймеры
+настоящие. Снимки сохраняются в `.browser-artifacts/chat-activity/`.
 
 Дополнительная браузерная регрессия подсказок и карточек: `.\.venv\Scripts\python.exe tests/catalog_dialog.browser.py`. Нужны локальные Playwright для Python и Chrome; проверка использует шаблоны без рабочей базы и сохраняет снимки в `.browser-artifacts/catalog-dialog/`.
 

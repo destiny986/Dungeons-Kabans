@@ -78,6 +78,56 @@ def png_upload():
 
 
 @pytest.mark.parametrize('htmx', [False, True])
+def test_item_send_quantities_form_errors_and_private_chat(master, htmx):
+    from html.parser import HTMLParser
+    from game.models import Item, InventoryEntry, MediaAsset
+    class Inputs(HTMLParser):
+        def __init__(self, body):
+            super().__init__(); self.inputs = {}; self.feed(body)
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'input':
+                self.inputs[attrs.get('name', '') + ':' + attrs.get('value', '')] = attrs
+    a = Character.objects.create(name='Анна <img>', is_active=True)
+    b = Character.objects.create(name='Борис', is_active=True)
+    c = Character.objects.create(name='Не выбран', is_active=True)
+    pa, pb = joined(a), joined(b)
+    icon = MediaAsset.objects.create(digest='f' * 64, path='f.png', width=1, height=1)
+    item = Item.objects.create(name='Зелье', icon=icon)
+    url = reverse('game:catalog_send', args=['item', item.pk])
+    card = master.get(reverse('game:card', args=['item', item.pk])).content.decode()
+    attrs = Inputs(card).inputs[f'quantity_{a.pk}:1']
+    assert attrs['min'] == '1' and attrs['step'] == '1'
+    assert attrs['aria-label'] == 'Количество для Анна <img>'
+    key = uuid.uuid4()
+    posted_a = str(a.pk).upper()
+    data = {'recipients': [posted_a, b.pk], f'quantity_{posted_a}': '3', f'quantity_{b.pk}': '',
+            f'quantity_{c.pk}': 'wrong', 'request_id': key}
+    headers = {'HTTP_HX_REQUEST': 'true'} if htmx else {}
+    response = master.post(url, data, **headers)
+    assert response.status_code == 422
+    inputs = Inputs(response.content.decode()).inputs
+    assert inputs[f'quantity_{a.pk}:3']['value'] == '3'
+    assert inputs[f'quantity_{b.pk}:']['value'] == ''
+    assert 'checked' in inputs[f'recipients:{a.pk}']
+    assert inputs[f'request_id:{key}']['value'] == str(key)
+    assert not InventoryEntry.objects.exists()
+    data[f'quantity_{b.pk}'] = '7'
+    assert master.post(url, data, **headers).status_code == (200 if htmx else 302)
+    assert InventoryEntry.objects.get(character=a).quantity == 3
+    assert InventoryEntry.objects.get(character=b).quantity == 7
+    assert not InventoryEntry.objects.filter(character=c).exists()
+    for client, hero, own, foreign in [(pa, a, 3, 7), (pb, b, 7, 3)]:
+        body = client.get(reverse('game:player', args=[hero.pk])).content.decode()
+        assert f'Количество: {own}' in body
+        assert f'Количество: {foreign}' not in body
+    body = master.get(reverse('game:master')).content.decode()
+    assert 'Количество: 3' in body and 'Количество: 7' in body
+    assert master.post(url, data, **headers).status_code == (200 if htmx else 302)
+    assert ChatMessage.objects.filter(kind='item_grant').count() == 2
+
+
+@pytest.mark.parametrize('htmx', [False, True])
 @pytest.mark.parametrize('resource', ['none', 'spell_slot'])
 def test_duplicate_action_send_notice(master, htmx, resource):
     from game.models import Action, CharacterAction, MediaAsset

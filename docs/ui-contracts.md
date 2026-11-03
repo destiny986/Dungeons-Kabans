@@ -1,5 +1,17 @@
 # Journal UI contracts
 
+The master item send form shows a numeric `quantity_<UUID>` next to each
+recipient, default 1, minimum 1, step 1, labelled «Количество для <name>».
+JavaScript disables unselected quantities without changing values, including
+after bulk selection, initial load and HTMX swaps. Collapsing the form and
+polling retain selections/quantities. Recipient names wrap beside the quantity
+on mobile. Item send errors retain the bound form and request UUID for retry;
+the returned UUID is already marked as an operation key. Events/actions do not
+show quantity controls. Both chats show «Количество: N» for item grants with
+recorded quantity; legacy messages without it keep their prior appearance.
+Item send forms use `novalidate`: selected-only server validation also works
+without JavaScript, so an invalid unchecked quantity cannot block submission.
+
 All templates live under `game/`. The stable base is `game/base.html`. All URL names use the `game` namespace and the names in the task UI brief. All mutations are POST with CSRF. File forms use multipart encoding. A `request_id` hidden UUID accompanies operations; JS renews it after successful completion, preserves it after network/validation errors, and preserves proposal tokens for higher-slot confirmation.
 
 ## Duplicate action grant notice
@@ -60,6 +72,23 @@ Master panel wrappers (GridStack nodes) and all filters remain untouched by poll
 `#poller` sends every 5s only while document visible; visibility return sends `refresh`. Filters (`events_filter`, `items_filter`, `actions_filter`), `active_tab`, and `[name=recipient_id]` included. JS preserves focused/dirty health input, all draft/filter inputs (never OOB replacement targets), chat scroll position unless previously at bottom, and active tab. If a new message arrives with chat visible, JS POSTs `chat_read` using CSRF; otherwise server unread controls badge. Only master incoming activity should count unread. For operations return dialog fragments or `HX-Trigger: {"refresh":true,"closeDialog":true}`; messages close/clear composer only on successful response via JS. Validation/conflict HTTP 422/409 bodies are rendered into dialog; errors are not discarded. Normal form POSTs render regular pages/redirects as fallback.
 
 ## Client behavior
+
+The master page alone loads `master_activity.js` configured by `data-activity-url`.
+Chat rows expose `data-message-kind` alongside `data-message-id`. Initial rendered
+incoming `text`, `action_use`, and `item_remove` IDs establish a per-tab in-memory
+baseline; only visible successful message OOB swaps advance it afterwards.
+Hidden pages request activity immediately, then 5s after each completed request;
+requests time out after 15s. Full HTMX polling remains visible-only. Requests
+are guarded at `htmx:beforeRequest` as well, so a queued full master refresh
+cannot start after the page hides. Activity responses
+replace the count relative to the baseline rather than incrementing it. Errors
+preserve the last count and retry; stale responses after visibility changes are
+ignored. At positive count, title alternates every 1s between
+`● Новых записей: N` and `(N) <original title>`. Zero count restores the original
+title (including after remote history clearing). Visibility return stops the
+background request/timers, clears the count, acknowledges rendered rows and uses
+the existing HTMX refresh. Reload resets the state. Browser timer throttling may
+delay polling and blinking; no sound, favicon or system notification is used.
 
 `app.js` initializes GridStack 14 only on master, persists geometry by stable panel ids in localStorage; CSS stacks mobile. Native dialogs clamp near the triggering card, confirmations center. Escape/backdrop and explicit close restore focus. Catalog/character previews update in place; file uploads use temporary local object URLs. Filters hide existing rows, never replace/discard fields. All user text is inserted with textContent. Vendor runtime assets are local (HTMX 2.0.11 / GridStack 14.0.0), no runtime CDN/build.
 

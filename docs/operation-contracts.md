@@ -1,10 +1,16 @@
 # Atomic operations and private chat
 
+`game.chat.master_activity(request, after)` requires master capability and returns
+`{count: int, max_id: str}` for existing messages with `id > after`,
+`from_master=False`, and kind `text`, `action_use`, or `item_remove`. Count and
+maximum come from one aggregate query; an empty result has `max_id="0"`.
+It never changes read cursors or creates operations/messages.
+
 `game.operations` exposes keyword-compatible `apply_action(request, character_id,
 action_id, request_id, confirmed_level=None, proposal=None)`, `set_health(request,
 character_id, value, request_id)`, `remove_item(request, character_id, item_id,
 quantity, request_id)`, `grant_catalog(request, kind, object_id, character_ids,
-request_id)`, `rest_characters(request, request_id)`, `send_chat(request, *, text,
+request_id, *, quantities=None)`, `rest_characters(request, request_id)`, `send_chat(request, *, text,
 character_id, as_master, request_id)`, and `mark_chat_read(request, character_id,
 through_id=None)`.
 
@@ -44,11 +50,20 @@ Action use metadata records the consumed resource kind and actual slot level
 (zero for rage/wildshape). Chat expense notes use this persisted metadata rather
 than the live action resource, including after catalog edits. System text is neutral and catalog
 references remain live. Each player log has only its own recipient. Item grants
-add one per unique recipient; known action memberships create neither duplicate
+add the positive integer from the optional UUID-to-quantity dictionary per unique
+recipient (default 1); known action memberships create neither duplicate
 membership nor false grant log. A grant operation is atomic across all active
 recipients. Rest includes every active character, including offline browsers,
 restores health exactly to maximum and only enabled resources. Each changed
 character gets a private rest summary with typed before/after metadata.
+
+Item quantities are validated inside the transaction, including the resulting
+inventory limit. Unselected dictionary entries are ignored. A failure rolls back
+all inventory, revision, operation and chat writes. Item grants create one private
+`item_grant` message per recipient in UUID order, storing `metadata.quantity`;
+`message_id` in the operation result refers to the first message. Non-unit
+quantities participate in the normalized fingerprint. All-unit grants retain
+legacy fingerprints so old successful operations remain replayable.
 
 When an action grant skips existing memberships, its successful result also
 contains `action_name` and `duplicate_recipients`, a list of `{id, name}` objects

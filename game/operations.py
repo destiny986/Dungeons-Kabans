@@ -213,7 +213,7 @@ def remove_item(request, character_id, item_id, quantity, request_id):
 
 
 @_service
-def grant_catalog(request, kind, object_id, character_ids, request_id):
+def grant_catalog(request, kind, object_id, character_ids, request_id, *, quantities=None):
     scope = _master(request)
     if kind not in ('event', 'item', 'action'):
         raise DomainError('Неизвестный вид записи.')
@@ -223,23 +223,43 @@ def grant_catalog(request, kind, object_id, character_ids, request_id):
     ids = sorted(set(str(_uuid(pk)) for pk in character_ids))
     if not ids:
         raise DomainError('Выберите получателей.')
-    key, fingerprint, replay = _begin(scope, request_id,
-        {'kind': 'grant_catalog', 'catalog': kind, 'object': str(object_id), 'characters': ids})
+    intent = {'kind': 'grant_catalog', 'catalog': kind, 'object': str(object_id), 'characters': ids}
+    amounts = {}
+    if kind == 'item':
+        if quantities is not None and not isinstance(quantities, dict):
+            raise DomainError('Укажите количество предметов для получателей.')
+        supplied = {}
+        for pk, value in (quantities or {}).items():
+            try:
+                supplied[str(_uuid(pk))] = value
+            except DomainError:
+                continue  # Unselected/invalid dictionary keys are not targets.
+        for pk in ids:
+            try:
+                amounts[pk] = _integer(supplied.get(pk, 1), 1, _maximum(InventoryEntry, 'quantity'))
+            except DomainError:
+                raise DomainError('Количество предметов должно быть целым положительным числом в допустимом диапазоне.') from None
+        # Keep fingerprints of legacy one-per-recipient requests replayable.
+        if any(value != 1 for value in amounts.values()):
+            intent['quantities'] = amounts
+    key, fingerprint, replay = _begin(scope, request_id, intent)
     if replay is not None:
         return replay
     obj = {'event': Event, 'item': Item, 'action': Action}[kind].objects.filter(pk=object_id).first()
-    characters = list(Character.objects.filter(pk__in=ids, is_active=True))
+    characters = list(Character.objects.filter(pk__in=ids, is_active=True).order_by('pk'))
     if obj is None or len(characters) != len(ids):
         raise DomainError('Запись или получатель недоступны.')
     recipients = []
     duplicate_recipients = []
     for character in characters:
         if kind == 'item':
-            entry, created = InventoryEntry.objects.get_or_create(character=character, item=obj)
+            quantity = amounts[str(character.pk)]
+            entry, created = InventoryEntry.objects.get_or_create(character=character, item=obj,
+                                                                   defaults={'quantity': quantity})
             if not created:
-                if entry.quantity >= _maximum(InventoryEntry, 'quantity'):
+                if entry.quantity > _maximum(InventoryEntry, 'quantity') - quantity:
                     raise DomainError('Достигнут предел количества предметов.')
-                InventoryEntry.objects.filter(pk=entry.pk).update(quantity=F('quantity') + 1)
+                InventoryEntry.objects.filter(pk=entry.pk).update(quantity=F('quantity') + quantity)
         elif kind == 'action':
             _, created = CharacterAction.objects.get_or_create(character=character, action=obj)
             if not created:
@@ -252,7 +272,12 @@ def grant_catalog(request, kind, object_id, character_ids, request_id):
     if duplicate_recipients:
         extra.update(action_name=obj.name, duplicate_recipients=sorted(
             duplicate_recipients, key=lambda row: (row['name'], row['id'])))
-    if recipients:
+    if kind == 'item':
+        for recipient in recipients:
+            message = create_message(recipients=[recipient], kind='item_grant', from_master=True,
+                text='Выдан предмет.', item=obj, metadata={'quantity': amounts[str(recipient)]})
+            extra.setdefault('message_id', message.pk)
+    elif recipients:
         message = create_message(recipients=recipients, kind={'event': 'event', 'item': 'item_grant',
             'action': 'action_grant'}[kind], from_master=True,
             text={'event': 'Отправлено событие.', 'item': 'Выдан предмет.', 'action': 'Выдано действие.'}[kind],

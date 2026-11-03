@@ -266,6 +266,68 @@ def maximum(model, field):
     return min(v.limit_value for v in model._meta.get_field(field).validators if isinstance(v, MaxValueValidator))
 
 
+def test_item_grant_individual_quantities_and_replay(setup):
+    op, char, _, _, icon = setup
+    other = Character.objects.create(name='Second', is_active=True)
+    item = Item.objects.create(name='Potion', icon=icon)
+    InventoryEntry.objects.create(character=char, item=item, quantity=4)
+    master = browser(master=True)
+    key = uuid.uuid4()
+    amounts = {str(char.pk).upper(): '3', str(other.pk): 7}
+    result = op.grant_catalog(master, 'item', item.pk, [char.pk, other.pk, char.pk], key, quantities=amounts)
+    assert result['status'] == 'ok'
+    assert InventoryEntry.objects.get(character=char).quantity == 7
+    assert InventoryEntry.objects.get(character=other).quantity == 7
+    messages = list(ChatMessage.objects.filter(kind='item_grant').order_by('id'))
+    assert len(messages) == 2
+    assert result['message_id'] == messages[0].pk
+    assert [str(m.recipients.get().pk) for m in messages] == sorted(key.lower() for key in amounts)
+    assert {str(m.recipients.get().pk): m.metadata['quantity'] for m in messages} == {str(char.pk): 3, str(other.pk): 7}
+    assert op.grant_catalog(master, 'item', item.pk, [other.pk, char.pk], key, quantities=amounts) == result
+    assert ChatMessage.objects.filter(kind='item_grant').count() == 2
+    amounts[str(char.pk).upper()] = 2
+    assert op.grant_catalog(master, 'item', item.pk, [char.pk, other.pk], key, quantities=amounts)['status'] == 'error'
+
+
+@pytest.mark.parametrize('value', ['', '0', '-1', '1.5', 'word', True, '9' * 101])
+def test_item_grant_invalid_quantity_rolls_back(setup, value):
+    op, char, _, _, icon = setup
+    other = Character.objects.create(name='Second', is_active=True)
+    item = Item.objects.create(name='Potion', icon=icon)
+    before = (ChatMessage.objects.count(), Operation.objects.count(), char.revision, other.revision)
+    result = op.grant_catalog(browser(master=True), 'item', item.pk, [char.pk, other.pk], uuid.uuid4(),
+                              quantities={str(char.pk): 3, str(other.pk): value})
+    assert result['status'] == 'error'
+    assert not InventoryEntry.objects.exists()
+    char.refresh_from_db(); other.refresh_from_db()
+    assert before == (ChatMessage.objects.count(), Operation.objects.count(), char.revision, other.revision)
+
+
+def test_item_grant_quantity_overflow_and_legacy_fingerprint(setup):
+    op, char, _, _, icon = setup
+    other = Character.objects.create(name='Second', is_active=True)
+    item = Item.objects.create(name='Potion', icon=icon)
+    cap = maximum(InventoryEntry, 'quantity')
+    entry = InventoryEntry.objects.create(character=char, item=item, quantity=cap - 1)
+    master = browser(master=True)
+    before = (ChatMessage.objects.count(), Operation.objects.count())
+    assert op.grant_catalog(master, 'item', item.pk, [other.pk], uuid.uuid4(),
+                            quantities={other.pk: cap + 1})['status'] == 'error'
+    assert op.grant_catalog(master, 'item', item.pk, [other.pk, char.pk], uuid.uuid4(),
+                            quantities={char.pk: 2, other.pk: 3})['status'] == 'error'
+    entry.refresh_from_db()
+    assert entry.quantity == cap - 1
+    assert not InventoryEntry.objects.filter(character=other).exists()
+    assert before == (ChatMessage.objects.count(), Operation.objects.count())
+    key = uuid.uuid4()
+    ids = sorted([str(char.pk), str(other.pk)])
+    scope = 'master:' + master.session.session_key
+    _, fingerprint, _ = op._begin(scope, key, {'kind': 'grant_catalog', 'catalog': 'item', 'object': str(item.pk), 'characters': ids})
+    old = {'status': 'ok', 'message': 'Готово.', 'message_id': 123}
+    Operation.objects.create(scope=scope, key=key, fingerprint=fingerprint, result=old)
+    assert op.grant_catalog(master, 'item', item.pk, ids, key, quantities={char.pk: '1', other.pk: 1}) == old
+
+
 def test_model_counter_limits_and_multi_recipient_rollback(setup):
     op, char, req, _, icon = setup
     cap = maximum(Character, 'health_current')

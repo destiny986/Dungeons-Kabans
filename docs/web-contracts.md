@@ -1,5 +1,22 @@
 # HTTP journal integration
 
+Catalog item sends accept repeated `recipients` and `quantity_<UUID>` per selected
+recipient. Missing quantities default to 1; empty or invalid positive integers
+return 422. Unselected quantity fields are ignored. The service validates values
+and applies the entire grant atomically. Item errors render the full card with
+the recipient form open, error text, selected recipients, submitted quantities
+and the same request UUID. HTMX receives a card fragment; ordinary POST receives
+a full page. Existing event/action sends and successful responses are unchanged.
+
+GET `/master/chat/activity/?after=<id>` (`game:chat_activity`) requires master
+capability through `game.access`. `after` is required: ASCII digits representing
+0..9223372036854775807 (at most 19 characters). Invalid/missing values return
+400 JSON `{"error":"Некорректный идентификатор сообщения."}`. Success returns
+`{"count": N, "max_id": "ID"}` from `game.chat.master_activity`; IDs are strings,
+empty maximum is `"0"`. All responses are never-cache/no-store. No writes or
+read-cursor advancement occur; other methods return 405. Standard master access
+redirects apply to unauthorized requests.
+
 `game.urls` includes access routes and the real journal routes inside namespace
 `game`. `config.urls` exposes that namespace plus healthz. GameConfig.ready registers
 catalog lifecycle signals as well as the SQLite connection hook.

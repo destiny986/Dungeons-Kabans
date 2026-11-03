@@ -610,3 +610,7 @@ body{background:white}
 .brand>span:last-child{min-width:0}
 .tab-pane h2{overflow-wrap:anywhere}
 }
+
+.send-recipient-item{display:grid;grid-template-columns:minmax(0,1fr) 5.5rem;align-items:center;gap:12px;margin:6px 0}
+.send-recipient-item .check-row{min-width:0;overflow-wrap:anywhere;margin:0}
+.send-recipient-item [data-send-quantity]{width:100%;min-width:0}

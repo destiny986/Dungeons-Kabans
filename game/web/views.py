@@ -1,6 +1,7 @@
 import uuid
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
+from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from game.access import master_required, character_required, get_character_grant, has_master_access, access_denied
@@ -72,6 +73,18 @@ def master(request):
 @master_required
 def master_poll(request):
     return render(request,'game/master_poll.html',master_context(request))
+
+
+@never_cache
+@require_GET
+@master_required
+def chat_activity(request):
+    from game.chat import master_activity
+    after = request.GET.get('after', '')
+    if (not after or len(after) > 19 or not after.isascii() or not after.isdecimal()
+            or int(after) > 9223372036854775807):
+        return JsonResponse({'error': 'Некорректный идентификатор сообщения.'}, status=400)
+    return JsonResponse(master_activity(request, int(after)))
 
 
 CHAT_CLEAR_WARNING = ('Безвозвратно удалить всю историю чата у мастера и всех игроков, '
@@ -168,6 +181,21 @@ def character_delete(request,pk):
     return success(request,'game:characters')
 
 
+def send_recipients(data=None):
+    selected = {}
+    for raw_id in data.getlist('recipients') if data is not None else []:
+        try:
+            selected[str(uuid.UUID(raw_id))] = data.get('quantity_' + raw_id, '1')
+        except ValueError:
+            continue
+    recipients = list(Character.objects.filter(is_active=True).order_by('name'))
+    for recipient in recipients:
+        recipient.send_selected = str(recipient.pk) in selected
+        recipient.send_quantity = selected.get(str(recipient.pk),
+            data.get('quantity_' + str(recipient.pk), '1') if data is not None else '1')
+    return recipients
+
+
 @require_GET
 def card(request,kind,pk):
     readonly = request.GET.get('preview') == '1'
@@ -199,7 +227,7 @@ def card(request,kind,pk):
             quantity = entry.quantity if entry else 0
     elif not has_master_access(request):
         return access_denied(request)
-    return render(request,'game/card.html',context(kind=kind,object=obj,is_master=character is None,readonly=readonly,character=character,quantity=quantity,active_characters=Character.objects.filter(is_active=True).order_by('name')))
+    return render(request,'game/card.html',context(kind=kind,object=obj,is_master=character is None,readonly=readonly,character=character,quantity=quantity,active_characters=send_recipients()))
 
 
 def request_key(request):
@@ -212,7 +240,7 @@ def request_key(request):
         raise ValidationError('Некорректный идентификатор запроса.') from None
 
 
-def operation(request,callback,*,character=None,action=None):
+def operation(request,callback,*,character=None,action=None,error_renderer=None):
     key = request.POST.get('request_id') or uuid.uuid4()
     try:
         key = request_key(request)
@@ -235,6 +263,8 @@ def operation(request,callback,*,character=None,action=None):
             response['HX-Trigger'] = '{"refresh":true}'
             return response
         return success(request,'game:player',pk=character.pk) if character else success(request)
+    if error_renderer is not None:
+        return error_renderer(result, key, status)
     return render(request,'game/operation_result.html',context(result=result,character=character,action=action,request_id=key),status=status)
 
 
@@ -265,7 +295,16 @@ def remove_item(request,pk,item_id):
 def catalog_send(request,kind,pk):
     from game.operations import grant_catalog
     get_object_or_404(catalog_model(kind),pk=pk)
-    return operation(request,lambda key:grant_catalog(request,kind,pk,request.POST.getlist('recipients'),key))
+    recipients = request.POST.getlist('recipients')
+    quantities = {recipient: request.POST.get('quantity_' + recipient, '1') for recipient in recipients} if kind == 'item' else None
+    def send_error(result, key, status):
+        obj = get_object_or_404(catalog_model(kind), pk=pk)
+        template = 'game/card.html' if request.headers.get('HX-Request', '').lower() == 'true' else 'game/catalog_send_error.html'
+        return render(request, template, context(kind=kind, object=obj, is_master=True,
+            active_characters=send_recipients(request.POST), send_error=result['message'],
+            send_open=True, request_id=key), status=status)
+    return operation(request,lambda key:grant_catalog(request,kind,pk,recipients,key,quantities=quantities),
+                     error_renderer=send_error if kind == 'item' else None)
 
 
 @require_POST

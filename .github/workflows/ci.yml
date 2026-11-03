@@ -37,8 +37,10 @@ jobs:
         run: |
           command -v node >/dev/null 2>&1 || { echo "::error::Node.js is required for CI JavaScript checks; it is not an application runtime dependency."; exit 1; }
           node --check game/static/game/app.js
+          node --check game/static/game/master_activity.js
           node tests/import_bulk.test.cjs
           node tests/catalog_preview.test.cjs
+          node tests/chat_activity.test.cjs
       - name: Shell syntax
         run: for script in deploy/*.sh; do bash -n "$script"; done
 

@@ -7,6 +7,7 @@ app_name = 'game'
 urlpatterns = access_patterns + [
     path('master/',views.master,name='master'),
     path('master/poll/',views.master_poll,name='master_poll'),
+    path('master/chat/activity/',views.chat_activity,name='chat_activity'),
     path('master/characters/',views.characters,name='characters'),
     path('master/characters/new/',views.character_edit,name='character_new'),
     path('master/characters/<uuid:pk>/edit/',views.character_edit,name='character_edit'),

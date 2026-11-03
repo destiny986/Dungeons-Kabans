@@ -3,6 +3,11 @@
   'use strict';
   const q = (selector, root = document) => root.querySelector(selector);
   const qa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+  function syncSendQuantities(root = document) {
+    qa('[data-send-quantity]', root).forEach(input => {
+      input.disabled = !q('[name=recipients]', input.closest('.send-recipient')).checked;
+    });
+  }
   const appDialog = q('#app-dialog');
   let focusReturn = null, anchorPoint = null, grid = null, notificationTimer;
   const confirmed = new WeakSet();
@@ -212,7 +217,11 @@
       const selected = choices.find(input => value ? input.value === value : input.value.startsWith('incoming_')) || choices[0];
       if (selected) selected.checked = true;
     });
-    const all = event.target.closest('[data-select-all],[data-select-none]'); if (all) qa('input[name=recipients]', all.closest('form')).forEach(input => { input.checked = all.hasAttribute('data-select-all'); });
+    const all = event.target.closest('[data-select-all],[data-select-none]'); if (all) {
+      const form = all.closest('form');
+      qa('input[name=recipients]', form).forEach(input => { input.checked = all.hasAttribute('data-select-all'); });
+      syncSendQuantities(form);
+    }
     const quantity = event.target.closest('[data-quantity-all]'); if (quantity) { q('[name=quantity]', quantity.closest('form')).value = quantity.dataset.quantityAll; notify('Выбраны все предметы. Нажмите «Удалить» для подтверждения.'); }
     const copy = event.target.closest('[data-copy]'); if (copy) { const input = document.getElementById(copy.dataset.copy); if (input) { input.select(); if (navigator.clipboard?.writeText) navigator.clipboard.writeText(input.value).then(() => notify('Ссылка скопирована')).catch(() => notify('Выделите и скопируйте ссылку')); else { document.execCommand('copy'); notify('Ссылка скопирована'); } } }
   });
@@ -229,6 +238,7 @@
     const form = event.target.closest('[data-preview-form]'); if (form) updatePreview(form);
   });
   document.addEventListener('change', event => {
+    if (event.target.matches('[name=recipients]')) syncSendQuantities(event.target.closest('form'));
     if (event.target.matches('[data-filter]')) applyFilter(event.target);
     updateCapabilities();
     const form = event.target.closest('[data-preview-form]'); if (!form) return;
@@ -283,6 +293,7 @@
     qa('[data-filter]').forEach(applyFilter); markRead();
   });
   document.addEventListener('htmx:afterSwap', event => {
+    syncSendQuantities(event.detail.target);
     if (event.detail.target?.id === 'dialog-content' && event.detail.target.textContent.trim()) { openDialog(appDialog, anchorPoint, focusReturn); anchorPoint = null; }
   });
   document.addEventListener('htmx:afterRequest', event => {
@@ -306,5 +317,5 @@
   document.addEventListener('closeDialog', () => closeDialog());
   document.addEventListener('refresh', event => { if (event.target !== q('#poller')) refresh(); });
   qa('[data-chat-scroll]').forEach(chat => { chat.scrollTop = chat.scrollHeight; });
-  qa('[data-preview-form]').forEach(updatePreview); updateCapabilities(); initGrid();
+  qa('[data-preview-form]').forEach(updatePreview); updateCapabilities(); initGrid(); syncSendQuantities();
 })();

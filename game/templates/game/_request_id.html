@@ -1,1 +1,1 @@
-<input type="hidden" name="request_id" value="{{ request_id }}">
+<input type="hidden" name="request_id" value="{{ request_id }}"{% if send_open %} data-operation-key="true"{% endif %}>
