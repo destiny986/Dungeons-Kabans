@@ -11,6 +11,7 @@ urlpatterns = access_patterns + [
     path('master/characters/',views.characters,name='characters'),
     path('master/characters/new/',views.character_edit,name='character_new'),
     path('master/characters/<uuid:pk>/edit/',views.character_edit,name='character_edit'),
+    path('master/characters/<uuid:pk>/copy/',views.character_copy,name='character_copy'),
     path('master/characters/<uuid:pk>/delete/',views.character_delete,name='character_delete'),
     path('master/catalog/<str:kind>/new/',views.catalog_edit,name='catalog_new'),
     path('master/catalog/<str:kind>/<uuid:pk>/edit/',views.catalog_edit,name='catalog_edit'),

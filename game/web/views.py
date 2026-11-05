@@ -130,7 +130,29 @@ def player_poll(request,pk):
 @require_GET
 @master_required
 def characters(request):
-    return render(request,'game/character_list.html',context(is_master=True,characters=Character.objects.select_related('portrait').order_by('name')))
+    return character_list_response(request)
+
+
+def character_list_response(request, *, result=None, retry_pk=None, request_id=None, status=200):
+    characters = list(Character.objects.select_related('portrait').order_by('name'))
+    for character in characters:
+        character.copy_request_id = request_id if character.pk == retry_pk else uuid.uuid4()
+    return render(request, 'game/character_list.html', context(is_master=True,
+        characters=characters, copy_result=result), status=status)
+
+
+@require_POST
+@master_required
+def character_copy(request, pk):
+    from game.operations import copy_character
+
+    def error_renderer(result, key, status):
+        return character_list_response(request, result=result, retry_pk=pk,
+                                       request_id=key, status=status)
+
+    # This operation always returns the full character list, including without JS.
+    return operation(request, lambda key: copy_character(request, pk, key),
+                     error_renderer=error_renderer, success_target='game:characters')
 
 
 def editor(request,kind=None,pk=None):
@@ -248,7 +270,7 @@ def request_key(request):
         raise ValidationError('Некорректный идентификатор запроса.') from None
 
 
-def operation(request,callback,*,character=None,action=None,error_renderer=None):
+def operation(request,callback,*,character=None,action=None,error_renderer=None,success_target=None):
     key = request.POST.get('request_id') or uuid.uuid4()
     try:
         key = request_key(request)
@@ -270,6 +292,8 @@ def operation(request,callback,*,character=None,action=None,error_renderer=None)
             response = render(request,'game/operation_result.html',context(result=result,character=character,action=action))
             response['HX-Trigger'] = '{"refresh":true}'
             return response
+        if success_target is not None:
+            return redirect(success_target)
         return success(request,'game:player',pk=character.pk) if character else success(request)
     if error_renderer is not None:
         return error_renderer(result, key, status)

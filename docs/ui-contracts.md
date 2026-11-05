@@ -1,5 +1,21 @@
 # Journal UI contracts
 
+## Character management
+
+The character list shows all characters. Its scoped `.character-management`
+cards put the portrait beside a centered name/class/health column with equal
+text padding and gaps. Status remains upper-right. Four `button secondary small`
+controls appear in one row: «Изменить», «Копировать», «Отозвать приглашение»,
+«Удалить». Narrow layouts wrap labels without overflow; the invite button stays
+below. Editor previews and master cards retain their existing layout.
+
+Copy submits immediately as an ordinary POST, with a separate pre-bound
+`copy_request_id` per character form. Success redirects to the full list;
+422/409 errors render that list with an escaped Russian alert and retain the
+submitted UUID on the affected form, marked `data-operation-key="true"`.
+The revoke form uses the existing confirmation and `return_to=characters`,
+returning to the updated list after revocation.
+
 ## Master settings
 
 The «Настройки игры» dialog keeps its eyebrow and title left-aligned. All six

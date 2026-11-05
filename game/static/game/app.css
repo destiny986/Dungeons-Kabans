@@ -637,3 +637,24 @@ body{background:white}
 .send-recipient-item{display:grid;grid-template-columns:minmax(0,1fr) 5.5rem;align-items:center;gap:12px;margin:6px 0}
 .send-recipient-item .check-row{min-width:0;overflow-wrap:anywhere;margin:0}
 .send-recipient-item [data-send-quantity]{width:100%;min-width:0}
+
+/* Character management is scoped separately from the editor preview and master card. */
+.character-management{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.character-management .character-card{position:relative;padding:18px;min-width:0}
+.character-management .status-chip{position:absolute;top:12px;right:12px}
+.character-management-heading{display:grid;grid-template-columns:85px minmax(0,1fr);gap:12px;align-items:stretch;margin:24px 0 16px}
+.character-management-heading>.portrait{width:85px;height:95px;margin:0}
+.character-management-heading>div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;text-align:center;padding:8px;overflow-wrap:anywhere}
+.character-management-heading h2,.character-management-heading p{width:100%;margin:0;padding:0}
+.character-management-heading h2{font-size:1.25rem}
+.character-management-heading p{font-size:.85rem}
+.character-management .character-management-tools{display:grid;grid-template-columns:1fr 1.2fr 1.3fr .9fr;gap:6px;align-items:stretch}
+.character-management-tools>form{display:flex;min-width:0;margin:0}
+.character-management .character-management-tools .button{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;padding:8px 4px;font-size:10px;text-align:center;white-space:normal;overflow-wrap:anywhere;letter-spacing:0}
+.character-copy-error{padding:18px;margin-bottom:18px}
+@media(max-width:600px){
+  .character-management{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:400px){
+  .character-management .character-management-tools .button{font-size:9px;padding:8px 2px}
+}

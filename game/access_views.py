@@ -77,6 +77,8 @@ def invite(request, pk):
 @master_required
 def revoke(request, pk):
     revoke_character(get_object_or_404(Character, pk=pk))
+    if request.POST.get('return_to') == 'characters':
+        return redirect('game:characters')
     if request.headers.get('HX-Request', '').lower() == 'true':
         return HttpResponse(headers={'HX-Trigger': '{"refresh":true,"closeDialog":true}'})
     return redirect('game:index')

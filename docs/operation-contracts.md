@@ -1,5 +1,27 @@
 # Atomic operations and private chat
 
+## Character copying
+
+`copy_character(request, character_id, request_id)` checks master capability
+inside a short IMMEDIATE transaction. It uses the shared browser-scoped Operation
+UUID/fingerprint mechanism and returns `{status: ok, message, character_id}`.
+Replay returns the saved result, including after deletion of the source; reuse
+for another intent is an error. A missing source returns stale with a Russian
+message. Copying neither writes chat messages nor changes the undo stack.
+
+The new character has a fresh UUID, revision=1, invitation_generation=1 and
+is_active=False. All sheet fields, current/max resources, item quantities and
+action memberships are copied; relationship rows and JSON values are independent.
+The portrait references the same protected MediaAsset. Invitations, grants,
+messages and operation history are not copied. Source revision is unchanged.
+
+The name removes trailing ` копия (N)` suffixes (positive decimal N,
+case-insensitive) and selects the smallest available N from 1 using normalize_name.
+For each candidate the base is truncated/rstripped to fit the model's 30-character
+limit with the complete suffix. Name allocation and all writes share one
+transaction, serializing concurrent copies on SQLite. Any failure rolls back all
+new rows and the idempotency record.
+
 ## Bounded undo
 
 `undo_preview(request, entry_id)` requires master access inside a short atomic

@@ -5,26 +5,34 @@
 </p>
 <h1>Управление персонажами
 </h1>
-</div><a class="button" href="{% url 'game:character_new' %}">+ Создать персонажа</a>
+</div><a class="button" href="{% url 'game:character_new' %}">Создать персонажа</a>
 </div>
-<div class="character-grid">{% for character in characters %}
+{% if copy_result %}<section class="paper character-copy-error" role="alert">
+<h2>Не удалось скопировать персонажа</h2><p>{{ copy_result.message }}</p>
+</section>{% endif %}
+<div class="character-grid character-management">{% for character in characters %}
 <article class="paper character-card">
-<div class="character-card-top">{% include 'game/portrait.html' %}<span class="status-chip {% if character.is_active %}active{% endif %}">{% if character.is_active %}В игре{% else %}Вне игры{% endif %}</span>
-</div>
-<h2>{{ character.name }}
-</h2>
-<p>{{ character.character_class }}
-</p>
-<p class="health-text">♥ {{ character.health_current }} / {{ character.health_max }}
-</p>
-<div class="card-tools"><a class="button secondary small" href="{% url 'game:character_edit' character.pk %}" aria-label="Редактировать {{ character.name }}">✎ Изменить</a>
+<span class="status-chip {% if character.is_active %}active{% endif %}">{% if character.is_active %}В игре{% else %}Вне игры{% endif %}</span>
+<header class="character-management-heading">
+{% include 'game/portrait.html' %}
+<div><h2>{{ character.name }}</h2><p>{{ character.character_class }}</p>
+<p class="health-text">♥ {{ character.health_current }} / {{ character.health_max }}</p></div>
+</header>
+<div class="card-tools character-management-tools"><a class="button secondary small" href="{% url 'game:character_edit' character.pk %}" aria-label="Редактировать {{ character.name }}">Изменить</a>
+<form method="post" action="{% url 'game:character_copy' character.pk %}" data-copy-character>{% csrf_token %}
+<input type="hidden" name="request_id" value="{{ character.copy_request_id }}" data-operation-key="true">
+<button class="button secondary small" type="submit" aria-label="Копировать {{ character.name }}">Копировать</button>
+</form>
+<form method="post" action="{% url 'game:revoke' character.pk %}" data-confirm="Отозвать все приглашения и завершить доступ к персонажу {{ character.name }} во всех браузерах?">{% csrf_token %}
+<input type="hidden" name="return_to" value="characters">
+<button class="button secondary small" type="submit" aria-label="Отозвать приглашение: {{ character.name }}">Отозвать приглашение</button>
+</form>
 <form method="post" action="{% url 'game:character_delete' character.pk %}" data-confirm="Удалить персонажа {{ character.name }}, его историю и доступы?">{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="icon-button danger" aria-label="Удалить {{ character.name }}">⦸
-</button>
+<button class="button secondary small" type="submit" aria-label="Удалить {{ character.name }}">Удалить</button>
 </form>
 </div>
 <form method="post" action="{% url 'game:invite' character.pk %}" hx-post="{% url 'game:invite' character.pk %}" hx-target="#dialog-content" data-dialog>{% csrf_token %}{% include 'game/_request_id.html' %}
-<button class="button wide">Пригласить игрока ↗
+<button class="button wide">Пригласить игрока
 </button>
 </form>
 </article>{% empty %}

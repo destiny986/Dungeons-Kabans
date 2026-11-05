@@ -1,5 +1,18 @@
 # HTTP journal integration
 
+POST `/master/characters/<uuid:pk>/copy/` (`game:character_copy`) requires master
+capability, CSRF and a request UUID (`request_id`; absent UUID follows the shared
+operation helper's generation behavior). Success redirects to `game:characters`,
+including for an HTMX-marked request. Invalid input is 422; a deleted source is
+409. Errors render the full list with a Russian alert and keep the submitted
+request UUID for retry. GET is 405. Atomic authorization and durable replay are
+owned by `game.operations.copy_character`.
+
+The existing revoke POST accepts the fixed `return_to=characters` marker from
+the management page: it performs the same revocation and redirects to the full
+list. Other values do not select arbitrary redirect destinations; existing
+master-card HTMX refresh/close and ordinary index redirect remain unchanged.
+
 POST `/master/undo/` (`game:undo_last`) requires master capability and CSRF.
 Fields: `entry_id` (positive journal integer), `request_id` (UUID), optional
 `confirmed=1`. Without confirmation, validate the request/target and render an

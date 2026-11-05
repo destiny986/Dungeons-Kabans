@@ -3,6 +3,7 @@ import hashlib
 import json
 import re
 import uuid
+from copy import deepcopy
 from functools import wraps
 
 from django.core import signing
@@ -14,6 +15,7 @@ from django.db.models import F, Max
 from .access import get_character_grant, has_master_access
 from .chat import create_message
 from . import undo as undo_history
+from .validators import normalize_name
 from .models import (Action, Character, CharacterAction, CharacterGrant, CharacterResource,
                      ChatMessage, Event, InventoryEntry, Item, Operation, UndoEntry)
 
@@ -89,6 +91,49 @@ def _complete(scope, key, fingerprint, *, undo=None, **extra):
     if undo is not None:
         undo_history.record(operation, **undo)
     return result
+
+
+@_service
+def copy_character(request, character_id, request_id):
+    scope = _master(request)
+    character_id = _uuid(character_id)
+    key, fingerprint, replay = _begin(scope, request_id,
+        {'kind': 'copy_character', 'character': str(character_id)})
+    if replay is not None:
+        return replay
+    source = Character.objects.filter(pk=character_id).first()
+    if source is None:
+        raise DomainError('Персонаж уже удалён. Обновите список.', 'stale')
+
+    base = re.sub(r'(?: копия \([1-9][0-9]*\))+$', '', source.name, flags=re.IGNORECASE)
+    occupied = set(Character.objects.values_list('normalized_name', flat=True))
+    limit = Character._meta.get_field('name').max_length
+    number = 1
+    while True:
+        suffix = f' копия ({number})'
+        name = base[:limit - len(suffix)].rstrip() + suffix
+        if normalize_name(name) not in occupied:
+            break
+        number += 1
+
+    # Explicit sheet fields keep access state and future service metadata out of copies.
+    sheet_fields = ('character_class', 'portrait_id', 'backstory', 'traits',
+        'abilities', 'saves', 'skills', 'weapons', 'health_current', 'health_max',
+        'speed', 'armor_class', 'proficiency_bonus', 'can_cast', 'can_rage',
+        'can_wildshape', 'spellcasting_ability', 'spell_save_dc', 'spell_attack_bonus')
+    clone = Character.objects.create(name=name,
+        **{field: deepcopy(getattr(source, field)) for field in sheet_fields})
+    CharacterResource.objects.bulk_create([
+        CharacterResource(character=clone, kind=row.kind, level=row.level,
+                          current=row.current, maximum=row.maximum)
+        for row in source.resources.all()])
+    InventoryEntry.objects.bulk_create([
+        InventoryEntry(character=clone, item_id=row.item_id, quantity=row.quantity)
+        for row in source.inventory.all()])
+    CharacterAction.objects.bulk_create([
+        CharacterAction(character=clone, action_id=row.action_id)
+        for row in source.action_grants.all()])
+    return _complete(scope, key, fingerprint, character_id=str(clone.pk))
 
 
 def _bump(character):
