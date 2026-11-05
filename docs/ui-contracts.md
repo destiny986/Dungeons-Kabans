@@ -1,12 +1,33 @@
 # Journal UI contracts
 
+## Master settings
+
+The «Настройки игры» dialog keeps its eyebrow and title left-aligned. All six
+controls share the neutral `button secondary` style in a single centered column,
+with equal widths, centered labels and equal dialog padding on both sides.
+Navigation links retain their leading symbols without trailing arrows. The layout
+reset button uses ↺ and remains a local GridStack layout reset.
+
+## Footer phrases
+
+Every full-page render selects one line with equal probability from the root
+`phrases.txt` using the `footer_phrase` template tag in `base.html`. Repeats are
+allowed. The file is read on each render as UTF-8 with optional BOM; blank lines
+are ignored and surrounding whitespace is stripped. Text is HTML-escaped. A
+missing, unreadable, invalid UTF-8 or empty file uses «Броски решают многое.
+Историю создаёте вы.». The existing footer styling and ✦ remain. HTMX fragments,
+including master/player polls, do not render the footer or select another phrase.
+
 ## Master players and undo
 
 The «Игроки» heading shows «Отдых» and then an `icon-button` plus link to
 `game:characters`, labelled «Управление персонажами». There is no ⋮ menu.
 Inside the unchanged `#master-players` OOB target, `.players-list` lays out
-compact cards left to right with automatic wrapping based on the panel width;
-long names wrap. The list scrolls independently above `.players-footer`, whose
+compact cards left to right with automatic wrapping based on the panel width.
+Cards use their portrait and text content width without stretching to fill a
+row; long names wrap within the panel width. Cards have no bottom divider.
+The empty state spans the full
+list width. The list scrolls independently above `.players-footer`, whose
 neutral full-width «Отменить последнее действие» button is disabled for an empty
 stack. Polls preserve the nested list's scroll position. `master_context`
 includes optional `undo_entry`, the latest retained global entry.
@@ -17,6 +38,11 @@ the player sheet. It does not add skills/traits. Bottom controls are neutral
 `button secondary small`: edit left, revoke access right. On narrow screens
 the ability tiles stack without horizontal overflow. Card context includes
 `ability_rows` in addition to `character`.
+
+The name, class and health share one vertical centerline in the block beside
+the portrait. That block centers its contents vertically, uses equal padding on
+all sides and equal gaps between the three entries, including on narrow screens.
+The master page navigation does not render a `span.role-label`.
 
 Undo opens a centered «Важное решение» confirmation with the exact operation,
 actual recipients/quantities or resource refund and consequences for all chats.

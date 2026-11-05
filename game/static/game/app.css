@@ -101,11 +101,11 @@ input::placeholder,textarea::placeholder{color:#96917f}
 .panel-filter input{font:11px/1.4 system-ui,sans-serif;min-height:39px;background:#f2ecdc}
 .players-heading-tools{display:flex;align-items:center;gap:10px}
 .players-body{display:flex;flex-direction:column;padding:0;overflow:hidden}
-.players-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));align-items:start;align-content:start;gap:12px;min-height:0;flex:1;overflow:auto;padding:16px 18px}
-.players-list>.empty-state{grid-column:1/-1}
+.players-list{display:flex;flex-wrap:wrap;align-items:flex-start;align-content:flex-start;gap:12px;min-height:0;flex:1;overflow:auto;padding:16px 18px}
+.players-list>.empty-state{flex:0 0 100%;min-width:0}
 .players-footer{flex-shrink:0;padding:12px 18px;border-top:1px solid #d8cdb5}
 .players-footer .button{white-space:normal}
-.player-mini{display:flex;align-items:center;gap:11px;padding:0 0 12px;border-bottom:1px dashed #d0c3a9;min-width:0}
+.player-mini{display:flex;flex:0 1 auto;max-width:100%;align-items:center;gap:11px;padding:0 0 12px;min-width:0}
 .player-mini>div{min-width:0;overflow-wrap:anywhere}
 .portrait{object-fit:cover;border:1px solid #a99c7c;padding:3px;background:#e5dbc4;aspect-ratio:1;border-radius:2px}
 .portrait-empty{display:grid;place-items:center;color:#7b795f;font-family:Georgia,serif;font-size:2rem;background:linear-gradient(145deg,#e2d6bb,#cec5ac)}
@@ -175,9 +175,8 @@ dialog{color:var(--ink);background:var(--paper-light);border:1px solid #a99a7b;b
 dialog::backdrop{background:#17271f69;backdrop-filter:blur(2px)}
 dialog h2{padding-right:20px}
 .dialog-close{position:absolute;right:8px;top:8px;min-width:38px;min-height:38px;border:0;background:transparent;color:#7d745f;font-size:1.6rem;z-index:3}
-.menu-list{display:flex;flex-direction:column;margin:20px 0}
-.menu-list a{display:flex;justify-content:space-between;min-height:52px;align-items:center;text-decoration:none;border-bottom:1px solid #d8ccb3;font-size:.95rem;gap:10px}
-.menu-list a:hover{background:#e9dfcb}
+.menu-list{display:flex;flex-direction:column;gap:10px;margin:20px 0}
+.menu-list .button{width:100%;min-width:0;text-align:center}
 .role-list{display:flex;flex-direction:column;gap:10px;margin-top:24px}
 .role-card{border:1px solid #c7bba0;display:flex;justify-content:space-between;gap:14px;padding:18px;text-decoration:none;min-height:60px}
 .role-card:hover{background:#eee5d3}
@@ -185,9 +184,10 @@ dialog h2{padding-right:20px}
 .detail-title{display:flex;align-items:center;gap:16px;margin-bottom:20px}
 .detail-title h2{margin:0;overflow-wrap:anywhere;font-size:1.65rem}
 .detail-card .detail-title h2{padding-right:20px}
-.active-character-heading{display:grid;grid-template-columns:clamp(90px,28vw,145px) minmax(0,1fr);gap:24px;align-items:start;margin-bottom:28px}
+.active-character-heading{display:grid;grid-template-columns:clamp(90px,28vw,145px) minmax(0,1fr);gap:24px;align-items:stretch;margin-bottom:28px}
 .active-character-heading>.portrait{width:100%;height:auto}
-.active-character-heading>div{min-width:0;text-align:center;padding-right:14px;overflow-wrap:anywhere}
+.active-character-heading>div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-width:0;text-align:center;padding:12px;overflow-wrap:anywhere}
+.active-character-heading h2,.active-character-heading p{width:100%;margin:0;padding:0}
 .active-character-heading h2{font-size:1.6rem}
 .active-character .section-heading{display:block}
 .active-character .section-heading h2{font-size:1.15rem;margin-bottom:8px}

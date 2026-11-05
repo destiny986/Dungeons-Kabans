@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static footer_phrases %}<!doctype html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#243e34"><title>{% block title %}Дневник приключений{% endblock %} · Dungeons & Kabans</title><link rel="stylesheet" href="{% static 'game/vendor/gridstack.min.css' %}"><link rel="stylesheet" href="{% static 'game/app.css' %}"><script defer src="{% static 'game/vendor/htmx.min.js' %}"></script><script defer src="{% static 'game/vendor/gridstack-all.js' %}"></script><script defer src="{% static 'game/app.js' %}"></script>
 </head>
@@ -9,7 +9,7 @@
 </header>
 <main id="main" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}
 </main>
-<footer class="app-footer">Броски решают многое. Историю создаёте вы. <span>✦</span>
+<footer class="app-footer">{% footer_phrase %} <span>✦</span>
 </footer>
 <div id="notifications" role="status" aria-live="polite"></div>
 <div id="catalog-tooltip" class="catalog-tooltip" role="tooltip" hidden></div>

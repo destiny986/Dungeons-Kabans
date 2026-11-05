@@ -1,4 +1,4 @@
-{% extends 'game/base.html' %}{% block title %}Стол мастера{% endblock %}{% block main_class %}page worktable{% endblock %}{% block nav %}<span class="role-label">Мастер</span>
+{% extends 'game/base.html' %}{% block title %}Стол мастера{% endblock %}{% block main_class %}page worktable{% endblock %}{% block nav %}
 <button type="button" class="button secondary small" data-open="settings-dialog">⚙ <span>Настройки</span>
 </button>{% endblock %}{% block content %}
 <noscript><style>
@@ -51,8 +51,13 @@
 </p>
 <h2 id="settings-title">Настройки игры
 </h2>
-<nav class="menu-list"><a href="{% url 'game:catalog_new' 'event' %}">✧ Создать событие <span>→</span></a><a href="{% url 'game:catalog_new' 'item' %}">◇ Создать предмет <span>→</span></a><a href="{% url 'game:catalog_new' 'action' %}">ϟ Создать действие или заклинание <span>→</span></a><a href="{% url 'game:characters' %}">♙ Управление персонажами <span>→</span></a><a href="{% url 'game:data' %}">▤ Управление базой данных <span>→</span></a>
-</nav>
-<button type="button" class="text-button" data-reset-layout>Сбросить расположение секций
+<nav class="menu-list">
+<a class="button secondary" href="{% url 'game:catalog_new' 'event' %}">✧ Создать событие</a>
+<a class="button secondary" href="{% url 'game:catalog_new' 'item' %}">◇ Создать предмет</a>
+<a class="button secondary" href="{% url 'game:catalog_new' 'action' %}">ϟ Создать действие или заклинание</a>
+<a class="button secondary" href="{% url 'game:characters' %}">♙ Управление персонажами</a>
+<a class="button secondary" href="{% url 'game:data' %}">▤ Управление базой данных</a>
+<button type="button" class="button secondary" data-reset-layout>↺ Сбросить расположение секций
 </button>
+</nav>
 </dialog>{% load static %}<script defer src="{% static 'game/master_activity.js' %}" data-activity-url="{% url 'game:chat_activity' %}"></script>{% endblock %}
